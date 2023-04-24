@@ -38,7 +38,6 @@ library Polynomials {
         require(w<Fr.r_mod);
 
         uint256 r_mod = Fr.r_mod;
-        bool success;
         assembly {
 
             // _n^_i [_p]

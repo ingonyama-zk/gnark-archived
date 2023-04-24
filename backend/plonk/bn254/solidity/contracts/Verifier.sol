@@ -137,14 +137,51 @@ library PlonkVerifier{
     ) internal view {
 
         // folded_h = Comm(h₁) + ζᵐ⁺²*Comm(h₂) + ζ²⁽ᵐ⁺²⁾*Comm(h₃)
-        uint256 n_plus_two = Fr.add(vk.domain_size, 2);
-        uint256 zeta_power_n_plus_two = Fr.pow(state.zeta, n_plus_two);
-        state.folded_h = proof.quotient_poly_commitments[2];
-        state.folded_h.point_mul_assign(zeta_power_n_plus_two);
-        state.folded_h.point_add_assign(proof.quotient_poly_commitments[1]);
-        state.folded_h.point_mul_assign(zeta_power_n_plus_two);
-        state.folded_h.point_add_assign(proof.quotient_poly_commitments[0]);
-       
+        // uint256 zeta_power_n_plus_two = Fr.pow(state.zeta, n_plus_two);
+
+        uint256 r = Fr.r_mod;
+        assembly {
+
+            let n_plus_two := addmod(mload(vk), 2, r)
+
+            // dst <- [s]dst + src
+            function point_acc_mul_local(dst,src,s) {
+                let buf := mload(0x40)
+                mstore(buf,mload(dst))
+                mstore(add(buf,0x20),mload(add(dst,0x20)))
+                mstore(add(buf,0x40),s)
+                pop(staticcall(gas(),7,buf,0x60,buf,0x40)) // TODO should we check success here ?
+                mstore(add(buf,0x40),mload(src))
+                mstore(add(buf,0x60),mload(add(src,0x20)))
+                pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
+            }
+
+            // TODO careful depends on the proof layout
+            // zeta_power_n_plus_two <- zeta**{n+2}
+            // let zeta_power_n_plus_two
+            let buf := mload(0x40)
+            mstore(buf, 0x20)
+            mstore(add(buf, 0x20), 0x20)
+            mstore(add(buf, 0x40), 0x20)
+            mstore(add(buf, 0x60), mload(add(state,0x60)))
+            mstore(add(buf, 0x80), n_plus_two)
+            mstore(add(buf, 0xa0), r)
+            pop(staticcall(gas(),0x05,buf,0xc0,0x00,0x20))
+            let zeta_power_n_plus_two := mload(0x00)
+
+            // state.folded_h <- [zeta^{n+2}]proof.quotient_poly_commitments[2]
+            // proof.quotient_poly_commitments[2] at position 0x1c=0x19+4=25+4 in the proof
+            // folded_h at position 0xb=11 in the state
+            let folded_h := add(state, mul(0xb,0x20))
+            let proof_quotient_poly_commitments := add(proof, mul(0x1c,0x20))
+            mstore(folded_h, mload(proof_quotient_poly_commitments))
+            mstore(add(folded_h,0x20), mload(add(proof_quotient_poly_commitments,0x20)))
+            proof_quotient_poly_commitments := sub(proof_quotient_poly_commitments,0x40)
+            point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
+            proof_quotient_poly_commitments := sub(proof_quotient_poly_commitments,0x40)
+            point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
+
+        }
     }
 
     function compute_commitment_linearised_polynomial(
@@ -268,7 +305,7 @@ library PlonkVerifier{
     } 
 
     function verify(Types.Proof memory proof, Types.VerificationKey memory vk, uint256[] memory public_inputs)
-    internal returns (bool) {
+    internal view returns (bool) {
 
         Types.State memory state;
         

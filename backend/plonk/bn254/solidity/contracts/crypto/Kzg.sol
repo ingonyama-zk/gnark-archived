@@ -96,7 +96,7 @@ library Kzg {
 
     // returns \sum_i [lambda^{i}p_i]H_i \sum_i [lambda^{i)]H_i, \sum_i [lambda_i]Comm_i, \sum_i lambda^i*p_i
     function fold_digests_quotients_evals(uint256[] memory lambda, uint256[] memory points, Bn254.G1Point[] memory digests, OpeningProof[] memory proofs)
-    internal returns(
+    internal view returns(
         Bn254.G1Point memory res_quotient, 
         Bn254.G1Point memory res_digest,
         Bn254.G1Point memory res_points_quotients,
@@ -185,7 +185,7 @@ library Kzg {
     }
 
     function batch_verify_multi_points(Bn254.G1Point[] memory digests, OpeningProof[] memory proofs, uint256[] memory points, Bn254.G2Point memory g2)
-    internal returns(bool)
+    internal view returns(bool)
     {
 
         require(digests.length == proofs.length);
@@ -252,7 +252,6 @@ library Kzg {
             mstore(add(buf, 0x60), 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed)
             mstore(add(buf, 0x80), 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b)
             mstore(add(buf, 0xa0), 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa)
-
             mstore(add(buf, 0xc0), mload(folded_quotients))
             mstore(add(buf, 0xe0), mload(add(folded_quotients, 0x20)))
             mstore(add(buf, 0x100), mload(g2))

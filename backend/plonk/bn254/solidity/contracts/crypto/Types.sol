@@ -27,20 +27,20 @@ library Types {
     }
 
     struct Proof {
-        //Bn254.G1Point[STATE_WIDTH+1] wire_commitments;        // [a(x)]/[b(x)]/[c(x)]/[PI2(x)]
         Bn254.G1Point[STATE_WIDTH] wire_commitments;            // [a(x)]/[b(x)]/[c(x)]
-        Bn254.G1Point[] wire_committed_commitments;             // commitment to the wires committed using Commit api
-        Bn254.G1Point grand_product_commitment;                 // [z(x)]
         Bn254.G1Point[STATE_WIDTH] quotient_poly_commitments;   // [t_lo]/[t_mid]/[t_hi]
         uint256[STATE_WIDTH] wire_values_at_zeta;               // a(zeta)/b(zeta)/c(zeta)
+        uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
+        Bn254.G1Point grand_product_commitment;                 // [z(x)]
         uint256 grand_product_at_zeta_omega;                    // z(w*zeta)
         uint256 quotient_polynomial_at_zeta;                    // t(zeta)
         uint256 linearization_polynomial_at_zeta;               // r(zeta)
-        uint256[] selector_commit_api_at_zeta;                  // qc_i(zeta)
-        uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
 
         Bn254.G1Point opening_at_zeta_proof;            // [Wzeta]
         Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
+        
+        Bn254.G1Point[] wire_committed_commitments;             // commitment to the wires committed using Commit api
+        uint256[] selector_commit_api_at_zeta;                  // qc_i(zeta)
     }
 
     struct State {
