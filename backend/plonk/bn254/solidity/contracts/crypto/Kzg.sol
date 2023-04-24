@@ -192,10 +192,19 @@ library Kzg {
         require(digests.length == points.length);
 
         // sample a random number (it's up to the verifier only so no need to take extra care)
+        // here we take lambda[i] = keccak256(digest[i].h_x)
         uint256[] memory lambda = new uint256[](digests.length);
-        lambda[0] = 1;
-        for (uint i=1; i<digests.length; i++){
-            lambda[i] = uint256(sha256(abi.encodePacked(digests[i].X)))%Fr.r_mod;
+        uint256 r = Fr.r_mod;
+        assembly {
+            let lambda_i := add(lambda,0x20)
+            mstore(lambda_i,1)
+            let digest_i := add(digests, mul(add(mload(digests),1),0x20))
+            for {let i:=1} lt(i,mload(digests)) {i:=add(i,1)}
+            {
+                digest_i := add(digest_i,0x40)
+                lambda_i := add(lambda_i,0x20)
+                mstore(lambda_i, mod(keccak256(digest_i,0x20),r))
+            }
         }
 
         Bn254.G1Point memory folded_digests;
