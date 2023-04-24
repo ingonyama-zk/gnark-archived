@@ -20,10 +20,10 @@ library Kzg {
     uint256 constant g1_y = 2;
 
     // g2_x_0*u + g2_x_1 (evm order)
-    uint256 constant g2_x_0 = 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2;
-    uint256 constant g2_x_1 = 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6e;
-    uint256 constant g2_y_0 = 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975;
-    uint256 constant g2_y_1 = 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7da;
+    uint256 constant g2_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+    uint256 constant g2_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+    uint256 constant g2_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
+    uint256 constant g2_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
     struct OpeningProof {
         // H = (h_x, h_y) quotient polynomial (f - f(z))/(x-z)
@@ -194,7 +194,7 @@ library Kzg {
     }
 
     function batch_verify_multi_points(Bn254.G1Point[] memory digests, OpeningProof[] memory proofs, uint256[] memory points, Bn254.G2Point memory g2)
-    internal view returns(bool)
+    internal returns(bool)
     {
 
         require(digests.length == proofs.length);
@@ -220,10 +220,13 @@ library Kzg {
         Bn254.G1Point memory folded_digests;
         Bn254.G1Point memory folded_quotients;
         Bn254.G1Point memory folded_points_quotients;
+        
         uint256 folded_evals;
         (folded_points_quotients, folded_digests, folded_quotients, folded_evals) = fold_digests_quotients_evals(lambda, points, digests, proofs);
 
         uint256 res_pairing;
+        bool success;
+
         assembly {
 
             // folded_evals_commit <- [folded_evals]G_1, G_1=(1,2)
@@ -267,9 +270,11 @@ library Kzg {
             mstore(add(buf, 0x120), mload(add(g2, 0x20)))
             mstore(add(buf, 0x140), mload(add(g2, 0x40)))
             mstore(add(buf, 0x160), mload(add(g2, 0x60)))
-            pop(staticcall(gas(),8,buf,0x180,0x00,0x20))
+            // success := staticcall(gas(),8,buf,0x180,0x00,0x20)
+            success := staticcall(gas(),8,buf,0x180,0x00,0x20)
             res_pairing := mload(0x00)
         }
+        require(success, "pairing failed!");
         return (res_pairing != 0);
 
     }

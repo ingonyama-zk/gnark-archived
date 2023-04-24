@@ -147,47 +147,14 @@ library PlonkVerifier{
         // folded_h = Comm(h₁) + ζᵐ⁺²*Comm(h₂) + ζ²⁽ᵐ⁺²⁾*Comm(h₃)
         // uint256 zeta_power_n_plus_two = Fr.pow(state.zeta, n_plus_two);
 
-        uint256 r = Fr.r_mod;
-        assembly {
-
-            let n_plus_two := addmod(mload(vk), 2, r)
-
-            // dst <- [s]dst + src
-            function point_acc_mul_local(dst,src,s) {
-                let buf := mload(0x40)
-                mstore(buf,mload(dst))
-                mstore(add(buf,0x20),mload(add(dst,0x20)))
-                mstore(add(buf,0x40),s)
-                pop(staticcall(gas(),7,buf,0x60,buf,0x40))
-                mstore(add(buf,0x40),mload(src))
-                mstore(add(buf,0x60),mload(add(src,0x20)))
-                pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
-            }
-
-            // TODO careful depends on the proof layout
-            // zeta_power_n_plus_two <- zeta**{n+2}
-            // let zeta_power_n_plus_two
-            let buf := mload(0x40)
-            mstore(buf, 0x20)
-            mstore(add(buf, 0x20), 0x20)
-            mstore(add(buf, 0x40), 0x20)
-            mstore(add(buf, 0x60), mload(add(state,0x60)))
-            mstore(add(buf, 0x80), n_plus_two)
-            mstore(add(buf, 0xa0), r)
-            pop(staticcall(gas(),0x05,buf,0xc0,0x00,0x20))
-            let zeta_power_n_plus_two := mload(0x00)
-
-            // state.folded_h <- [zeta^{n+2}]proof.quotient_poly_commitments[2]
-            let folded_h := add(state, state_folded_h)
-            let proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_2)
-            mstore(folded_h, mload(proof_quotient_poly_commitments))
-            mstore(add(folded_h,0x20), mload(add(proof_quotient_poly_commitments,0x20)))
-            proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_1)
-            point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
-            proof_quotient_poly_commitments := add(proof,proof_quotient_poly_commitments_0)
-            point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
-
-        }
+        // folded_h = Comm(h₁) + ζᵐ⁺²*Comm(h₂) + ζ²⁽ᵐ⁺²⁾*Comm(h₃)
+        uint256 n_plus_two = Fr.add(vk.domain_size, 2);
+        uint256 zeta_power_n_plus_two = Fr.pow(state.zeta, n_plus_two);
+        state.folded_h = proof.quotient_poly_commitments[2];
+        state.folded_h.point_mul_assign(zeta_power_n_plus_two);
+        state.folded_h.point_add_assign(proof.quotient_poly_commitments[1]);
+        state.folded_h.point_mul_assign(zeta_power_n_plus_two);
+        state.folded_h.point_add_assign(proof.quotient_poly_commitments[0]);
     }
 
     function compute_commitment_linearised_polynomial(
@@ -311,7 +278,7 @@ library PlonkVerifier{
     } 
 
     function verify(Types.Proof memory proof, Types.VerificationKey memory vk, uint256[] memory public_inputs)
-    internal view returns (bool) {
+    internal returns (bool) {
 
         Types.State memory state;
         
@@ -323,6 +290,8 @@ library PlonkVerifier{
         
         // step 3: fold H ( = Comm(h₁) + ζᵐ⁺²*Comm(h₂) + ζ²⁽ᵐ⁺²⁾*Comm(h₃))
         fold_h(state, proof, vk);
+        // state.folded_h.X = 1;
+        // state.folded_h.Y = 2;
 
         // linearizedPolynomialDigest =
         // 		l(ζ)*ql+r(ζ)*qr+r(ζ)l(ζ)*qm+o(ζ)*qo+qk+\sum_i qc_i*PI2_i +
@@ -340,8 +309,6 @@ library PlonkVerifier{
         
         Kzg.OpeningProof[] memory proofs = new Kzg.OpeningProof[](2);
         
-        // Bn254.copy_g1(proofs[0].H, state.folded_proof.H);
-        // proofs[0].claimed_value = state.folded_proof.claimed_value;
         Kzg.copy_opening_proof(proofs[0], state.folded_proof);
 
         //Bn254.copy_g1(proofs[1].H, proof.opening_at_zeta_omega_proof);
@@ -352,6 +319,12 @@ library PlonkVerifier{
         uint256[] memory points = new uint256[](2);
         points[0] = state.zeta;
         points[1] = Fr.mul(state.zeta, vk.omega);
+
+        // emit PrintUint256(state.folded_digests.X);
+        // emit PrintUint256(state.folded_digests.Y);
+        // emit PrintUint256(state.folded_proof.h_x);
+        // emit PrintUint256(state.folded_proof.h_y);
+        // emit PrintUint256(state.folded_proof.claimed_value);
 
         valid = valid && Kzg.batch_verify_multi_points(digests, proofs, points, vk.g2_x);
         
