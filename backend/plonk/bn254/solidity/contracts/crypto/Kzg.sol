@@ -16,6 +16,15 @@ library Kzg {
     using Fr for uint256;
     using TranscriptLibrary for TranscriptLibrary.Transcript;
 
+    uint256 constant g1_x = 1;
+    uint256 constant g1_y = 2;
+
+    // g2_x_0*u + g2_x_1 (evm order)
+    uint256 constant g2_x_0 = 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2;
+    uint256 constant g2_x_1 = 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6e;
+    uint256 constant g2_y_0 = 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975;
+    uint256 constant g2_y_1 = 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7da;
+
     struct OpeningProof {
         // H = (h_x, h_y) quotient polynomial (f - f(z))/(x-z)
         //Bn254.G1Point H;
@@ -221,8 +230,8 @@ library Kzg {
             let folded_evals_commit_x
             let folded_evals_commit_y
             let buf := mload(0x40)
-            mstore(buf, 1)
-            mstore(add(buf,0x20), 2)
+            mstore(buf, g1_x)
+            mstore(add(buf,0x20), g1_y)
             mstore(add(buf,0x40), folded_evals)
             pop(staticcall(gas(),7,buf,0x60,buf,0x40))
             folded_evals_commit_x := mload(buf)
@@ -248,10 +257,10 @@ library Kzg {
             // e([∑ᵢλᵢ(fᵢ(α) - fᵢ(pᵢ) + pᵢHᵢ(α))]G₁, G₂).e([-∑ᵢλᵢ[Hᵢ(α)]G₁), [α]G₂)
             mstore(buf, mload(folded_digests))
             mstore(add(buf, 0x20), mload(add(folded_digests, 0x20)))
-            mstore(add(buf, 0x40), 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2) // the 4 lines are the canonical G2 point on BN254
-            mstore(add(buf, 0x60), 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed)
-            mstore(add(buf, 0x80), 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b)
-            mstore(add(buf, 0xa0), 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa)
+            mstore(add(buf, 0x40), g2_x_0) // the 4 lines are the canonical G2 point on BN254
+            mstore(add(buf, 0x60), g2_x_1)
+            mstore(add(buf, 0x80), g2_y_0)
+            mstore(add(buf, 0xa0), g2_y_1)
             mstore(add(buf, 0xc0), mload(folded_quotients))
             mstore(add(buf, 0xe0), mload(add(folded_quotients, 0x20)))
             mstore(add(buf, 0x100), mload(g2))

@@ -23,6 +23,14 @@ library PlonkVerifier{
 
     uint256 constant STATE_WIDTH = 3;
 
+    // offset for the proof data (in bytes)
+    uint256 constant proof_quotient_poly_commitments_0 = 0x300;
+    uint256 constant proof_quotient_poly_commitments_1 = 0x340;
+    uint256 constant proof_quotient_poly_commitments_2 = 0x380;
+
+    // offset for the state (in bytes)
+    uint256 constant state_folded_h = 0x160;
+
     function derive_gamma_beta_alpha_zeta(
 
         Types.State memory state,
@@ -150,7 +158,7 @@ library PlonkVerifier{
                 mstore(buf,mload(dst))
                 mstore(add(buf,0x20),mload(add(dst,0x20)))
                 mstore(add(buf,0x40),s)
-                pop(staticcall(gas(),7,buf,0x60,buf,0x40)) // TODO should we check success here ?
+                pop(staticcall(gas(),7,buf,0x60,buf,0x40))
                 mstore(add(buf,0x40),mload(src))
                 mstore(add(buf,0x60),mload(add(src,0x20)))
                 pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
@@ -170,15 +178,13 @@ library PlonkVerifier{
             let zeta_power_n_plus_two := mload(0x00)
 
             // state.folded_h <- [zeta^{n+2}]proof.quotient_poly_commitments[2]
-            // proof.quotient_poly_commitments[2] at position 0x1c=0x19+4=25+4 in the proof
-            // folded_h at position 0xb=11 in the state
-            let folded_h := add(state, mul(0xb,0x20))
-            let proof_quotient_poly_commitments := add(proof, mul(0x1c,0x20))
+            let folded_h := add(state, state_folded_h)
+            let proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_2)
             mstore(folded_h, mload(proof_quotient_poly_commitments))
             mstore(add(folded_h,0x20), mload(add(proof_quotient_poly_commitments,0x20)))
-            proof_quotient_poly_commitments := sub(proof_quotient_poly_commitments,0x40)
+            proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_1)
             point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
-            proof_quotient_poly_commitments := sub(proof_quotient_poly_commitments,0x40)
+            proof_quotient_poly_commitments := add(proof,proof_quotient_poly_commitments_0)
             point_acc_mul_local(folded_h, proof_quotient_poly_commitments, zeta_power_n_plus_two)
 
         }
