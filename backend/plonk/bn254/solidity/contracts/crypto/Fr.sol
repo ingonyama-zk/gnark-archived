@@ -42,14 +42,7 @@ library Fr {
           mstore(add(mPtr, 0x60), x)
           mstore(add(mPtr, 0x80), power)
           mstore(add(mPtr, 0xa0), p)
-          success := staticcall(
-            gas(),
-            0x05,
-            mPtr,
-            0xc0,
-            0x00,
-            0x20
-          )
+          success := staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20)
           result := mload(0x00)
         }
         require(success);

@@ -51,26 +51,50 @@ contract TestContract {
 
   function test_assembly() public {
   
-    Kzg.OpeningProof[] memory proof = new Kzg.OpeningProof[](2);
-    proof[0].h_x = 10;
-    proof[0].h_y = 20;
-    proof[0].claimed_value = 30;
-    proof[1].h_x = 40;
-    proof[1].h_y = 50;
-    proof[1].claimed_value = 60;
+    // Kzg.OpeningProof[] memory proof = new Kzg.OpeningProof[](2);
+    // proof[0].h_x = 10;
+    // proof[0].h_y = 20;
+    // proof[0].claimed_value = 30;
+    // proof[1].h_x = 40;
+    // proof[1].h_y = 50;
+    // proof[1].claimed_value = 60;
     
-    uint256[] memory s = new uint256[](10);
+    // uint256[] memory s = new uint256[](10);
+    // assembly {
+    //   for {let i:=0} lt(i,10) {i:=add(i,1)}
+    //   {
+    //     mstore(add(s,add(0x20,mul(0x20,i))), mload(add(proof, mul(0x20,i))))
+    //     // ss := mload(add(proof, 0xa0))
+    //   }
+    // }
+    // // emit PrintUint256(ss);
+    // for (uint i=0; i<10; i++){
+    //   emit PrintUint256(s[i]);
+    // }
+
+    uint256 a = 3;
+    uint256 b = 3;
+    uint256 r = Fr.r_mod;
+    uint256 w;
     assembly {
-      for {let i:=0} lt(i,10) {i:=add(i,1)}
-      {
-        mstore(add(s,add(0x20,mul(0x20,i))), mload(add(proof, mul(0x20,i))))
-        // ss := mload(add(proof, 0xa0))
+      // _n^_i [_p]
+      function pow_local(_n, _i, _p)->result {
+          let mPtr := mload(0x40)
+          mstore(mPtr, 0x20)
+          mstore(add(mPtr, 0x20), 0x20)
+          mstore(add(mPtr, 0x40), 0x20)
+          mstore(add(mPtr, 0x60), _n)
+          mstore(add(mPtr, 0x80), _i)
+          mstore(add(mPtr, 0xa0), _p)
+          pop(staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20))
+          result := mload(0x00)
       }
+
+      // w**i
+      a := pow_local(a,b,r)
+      w := a
     }
-    // emit PrintUint256(ss);
-    for (uint i=0; i<10; i++){
-      emit PrintUint256(s[i]);
-    }
+    emit PrintUint256(w);
   }
 
   function test_plonk_vanilla() public returns(bool) {

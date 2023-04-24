@@ -195,6 +195,7 @@ library Kzg {
         // here we take lambda[i] = keccak256(digest[i].h_x)
         uint256[] memory lambda = new uint256[](digests.length);
         uint256 r = Fr.r_mod;
+        uint256 p = Bn254.p_mod;
         assembly {
             let lambda_i := add(lambda,0x20)
             mstore(lambda_i,1)
@@ -213,25 +214,55 @@ library Kzg {
         uint256 folded_evals;
         (folded_points_quotients, folded_digests, folded_quotients, folded_evals) = fold_digests_quotients_evals(lambda, points, digests, proofs);
 
-        // compute commitment to folded Eval  [∑ᵢλᵢfᵢ(aᵢ)]G₁
-        Bn254.G1Point memory g1 = Bn254.P1();
-        Bn254.G1Point memory folded_evals_commit = Bn254.point_mul(g1, folded_evals);
+        uint256 res_pairing;
+        assembly {
 
-        // compute foldedDigests = ∑ᵢλᵢ[fᵢ(α)]G₁ - [∑ᵢλᵢfᵢ(aᵢ)]G₁
-        folded_digests.point_sub_assign(folded_evals_commit);
+            // folded_evals_commit <- [folded_evals]G_1, G_1=(1,2)
+            let folded_evals_commit_x
+            let folded_evals_commit_y
+            let buf := mload(0x40)
+            mstore(buf, 1)
+            mstore(add(buf,0x20), 2)
+            mstore(add(buf,0x40), folded_evals)
+            pop(staticcall(gas(),7,buf,0x60,buf,0x40))
+            folded_evals_commit_x := mload(buf)
+            folded_evals_commit_y := mload(add(buf,0x20))
 
-        // ∑ᵢλᵢ[f_i(α)]G₁ - [∑ᵢλᵢfᵢ(aᵢ)]G₁ + ∑ᵢλᵢ[p_i]([Hᵢ(α)]G₁)
-	    // = [∑ᵢλᵢf_i(α) - ∑ᵢλᵢfᵢ(aᵢ) + ∑ᵢλᵢpᵢHᵢ(α)]G₁
-        folded_digests = Bn254.point_add(folded_digests, folded_points_quotients);
-        folded_quotients.Y = Bn254.p_mod - folded_quotients.Y;
+            // foldedDigests <- ∑ᵢλᵢ[fᵢ(α)]G₁ - [∑ᵢλᵢfᵢ(aᵢ)]G₁
+            mstore(buf, mload(folded_digests))
+            mstore(add(buf,0x20), mload(add(folded_digests,0x20)))
+            mstore(add(buf,0x40), folded_evals_commit_x)
+            mstore(add(buf,0x60), sub(p,folded_evals_commit_y))
+            pop(staticcall(gas(),6,buf,0x80,folded_digests,0x40))
 
-        // pairing check
-	    // e([∑ᵢλᵢ(fᵢ(α) - fᵢ(pᵢ) + pᵢHᵢ(α))]G₁, G₂).e([-∑ᵢλᵢ[Hᵢ(α)]G₁), [α]G₂)
-        Bn254.G2Point memory g2srs = Bn254.P2();
+            // folded_digests <- [∑ᵢλᵢf_i(α) - ∑ᵢλᵢfᵢ(aᵢ) + ∑ᵢλᵢpᵢHᵢ(α)]G₁
+            mstore(buf, mload(folded_digests))
+            mstore(add(buf,0x20), mload(add(folded_digests, 0x20)))
+            mstore(add(buf,0x40), mload(folded_points_quotients))
+            mstore(add(buf,0x60), mload(add(folded_points_quotients, 0x20)))
+            pop(staticcall(gas(),6,buf,0x80,folded_digests,0x40))
 
-        bool check = Bn254.pairingProd2(folded_digests, g2srs, folded_quotients, g2);
+            // folded_quotients <- -[folded_quotients]
+            mstore(add(folded_quotients,0x20), sub(p,mload(add(folded_quotients,0x20))))
 
-        return check;
+            // e([∑ᵢλᵢ(fᵢ(α) - fᵢ(pᵢ) + pᵢHᵢ(α))]G₁, G₂).e([-∑ᵢλᵢ[Hᵢ(α)]G₁), [α]G₂)
+            mstore(buf, mload(folded_digests))
+            mstore(add(buf, 0x20), mload(add(folded_digests, 0x20)))
+            mstore(add(buf, 0x40), 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2) // the 4 lines are the canonical G2 point on BN254
+            mstore(add(buf, 0x60), 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed)
+            mstore(add(buf, 0x80), 0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b)
+            mstore(add(buf, 0xa0), 0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa)
+
+            mstore(add(buf, 0xc0), mload(folded_quotients))
+            mstore(add(buf, 0xe0), mload(add(folded_quotients, 0x20)))
+            mstore(add(buf, 0x100), mload(g2))
+            mstore(add(buf, 0x120), mload(add(g2, 0x20)))
+            mstore(add(buf, 0x140), mload(add(g2, 0x40)))
+            mstore(add(buf, 0x160), mload(add(g2, 0x60)))
+            pop(staticcall(gas(),8,buf,0x180,0x00,0x20))
+            res_pairing := mload(0x00)
+        }
+        return (res_pairing != 0);
 
     }
 

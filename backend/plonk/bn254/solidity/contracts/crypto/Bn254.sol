@@ -106,14 +106,7 @@ library Bn254 {
       mstore(add(mPtr, 0x20), mload(add(p1, 0x20)))
       mstore(add(mPtr, 0x40), mload(p2))
       mstore(add(mPtr, 0x60), mload(add(p2, 0x20)))
-      success := staticcall(
-        gas(), 
-        6, 
-        mPtr, 
-        0x80, 
-        dest, 
-        0x40
-      )
+      success := staticcall(gas(),6,mPtr,0x80,dest,0x40)
     }
     require(success);
     // }
