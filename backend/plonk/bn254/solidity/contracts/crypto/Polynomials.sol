@@ -41,86 +41,39 @@ library Polynomials {
         bool success;
         assembly {
 
+            // _n^_i [_p]
+            function pow_local(_n, _i, _p)->result {
+                let mPtr := mload(0x40)
+                mstore(mPtr, 0x20)
+                mstore(add(mPtr, 0x20), 0x20)
+                mstore(add(mPtr, 0x40), 0x20)
+                mstore(add(mPtr, 0x60), _n)
+                mstore(add(mPtr, 0x80), _i)
+                mstore(add(mPtr, 0xa0), _p)
+                pop(staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20))
+                result := mload(0x00)
+            }
+
             // w**i
-            let a := mload(0x40)
-            mstore(a, 0x20)
-            mstore(add(a, 0x20), 0x20)
-            mstore(add(a, 0x40), 0x20)
-            mstore(add(a, 0x60), w)
-            mstore(add(a, 0x80), i)
-            mstore(add(a, 0xa0), r_mod)
-            success := staticcall(
-                gas(),
-                0x05,
-                a,
-                0xc0,
-                0x00,
-                0x20
-            )
-            w := mload(0x00)
+            w := pow_local(w,i,r_mod)
 
             // z-w**i
             i := addmod(z, sub(r_mod, w), r_mod)
 
             // z**n
-            a := mload(0x40)
-            mstore(a, 0x20)
-            mstore(add(a, 0x20), 0x20)
-            mstore(add(a, 0x40), 0x20)
-            mstore(add(a, 0x60), z)
-            mstore(add(a, 0x80), n)
-            mstore(add(a, 0xa0), r_mod)
-            success := and(staticcall(
-                gas(),
-                0x05,
-                a,
-                0xc0,
-                0x00,
-                0x20
-            ), success)
-            z := mload(0x00)
+            z := pow_local(z, n, r_mod)
 
             // z**n-1
             z := addmod(z, sub(r_mod, 1), r_mod)
 
              // n**-1
-            a := mload(0x40)
-            mstore(a, 0x20)
-            mstore(add(a, 0x20), 0x20)
-            mstore(add(a, 0x40), 0x20)
-            mstore(add(a, 0x60), n)
-            mstore(add(a, 0x80), sub(r_mod, 2))
-            mstore(add(a, 0xa0), r_mod)
-            success := and(staticcall(
-                gas(),
-                0x05,
-                a,
-                0xc0,
-                0x00,
-                0x20
-            ), success)
-            n := mload(0x00)
+            n := pow_local(n, sub(r_mod,2), r_mod)
 
             // w**i/n
             w := mulmod(w, n, r_mod)
 
             // (z-w**i)**-1
-            a := mload(0x40)
-            mstore(a, 0x20)
-            mstore(add(a, 0x20), 0x20)
-            mstore(add(a, 0x40), 0x20)
-            mstore(add(a, 0x60), i)
-            mstore(add(a, 0x80), sub(r_mod, 2))
-            mstore(add(a, 0xa0), r_mod)
-            success := and(staticcall(
-                gas(),
-                0x05,
-                a,
-                0xc0,
-                0x00,
-                0x20
-            ), success)
-            i := mload(0x00)
+            i := pow_local(i, sub(r_mod,2),r_mod)
 
             // w**i/n*(z-w**i)**-1
             w := mulmod(w, i, r_mod)
@@ -128,7 +81,7 @@ library Polynomials {
             // w**i/n*(z**n-1)*(z-w**i)**-1
             w := mulmod(w, z, r_mod)
         }
-        require(success, "compute_ith_lagrange_at_z failed!");
+        // require(success, "compute_ith_lagrange_at_z failed!");
         
         return w;
     }
