@@ -21,14 +21,39 @@ library PlonkVerifier{
     using Polynomials for *;
     using Types for *;
 
-    uint256 constant STATE_WIDTH = 3;
-
     // offset for the proof data (in bytes)
+    uint256 constant proof_l_commitment = 0x00;
+    uint256 constant proof_r_commitment = 0x40;
+    uint256 constant proof_o_commitment = 0x80;
+
     uint256 constant proof_quotient_poly_commitments_0 = 0xc0;
     uint256 constant proof_quotient_poly_commitments_1 = 0x100;
     uint256 constant proof_quotient_poly_commitments_2 = 0x140;
 
+    uint256 constant proof_l_at_zeta = 0x180;
+    uint256 constant proof_r_at_zeta = 0x1a0;
+    uint256 constant proof_o_at_zeta = 0x1c0;
+
+    uint256 constant proof_s1_at_zeta = 0x1e0;
+    uint256 constant proof_s2_at_zeta = 0x200;
+
+    uint256 constant proof_grand_product_commitment = 0x220;
+
+    uint256 constant proof_grand_product_at_zeta_omega = 0x260;
+    uint256 constant proof_quotient_polynomial_at_zeta = 0x280;
+    uint256 constant proof_linearization_polynomial_at_zeta = 0x2a0;
+
     // offset for the state (in bytes)
+    uint256 constant state_alpha = 0x00;
+    uint256 constant state_beta = 0x20;
+    uint256 constant state_gamma = 0x40;
+    uint256 constant state_zeta = 0x60;
+
+    uint256 constant state_v = 0x80;
+    uint256 constant state_u = 0xa0;
+
+    uint256 constant state_alpha_square_lagrange = 0xc0;
+
     uint256 constant state_folded_h = 0xe0;
 
     function derive_gamma_beta_alpha_zeta(
