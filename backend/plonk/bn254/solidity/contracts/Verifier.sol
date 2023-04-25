@@ -24,9 +24,9 @@ library PlonkVerifier{
     uint256 constant STATE_WIDTH = 3;
 
     // offset for the proof data (in bytes)
-    uint256 constant proof_quotient_poly_commitments_0 = 0x300;
-    uint256 constant proof_quotient_poly_commitments_1 = 0x340;
-    uint256 constant proof_quotient_poly_commitments_2 = 0x380;
+    uint256 constant proof_quotient_poly_commitments_0 = 0x280;
+    uint256 constant proof_quotient_poly_commitments_1 = 0x2c0;
+    uint256 constant proof_quotient_poly_commitments_2 = 0x300;
 
     // offset for the state (in bytes)
     uint256 constant state_folded_h = 0xe0;
@@ -41,21 +41,13 @@ library PlonkVerifier{
         TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
         t.set_challenge_name("gamma");
 
-        // for (uint256 i = 0; i < vk.permutation_commitments.length; i++) {
-        //     t.update_with_g1(vk.permutation_commitments[i]);
-        // }
         t.update_with_u256(vk.s1_com_x);
         t.update_with_u256(vk.s1_com_y);
         t.update_with_u256(vk.s2_com_x);
         t.update_with_u256(vk.s2_com_y);
         t.update_with_u256(vk.s3_com_x);
         t.update_with_u256(vk.s3_com_y);
-       
-        // t.update_with_g1(vk.selector_commitments[0]); // ql
-        // t.update_with_g1(vk.selector_commitments[1]); // qr
-        // t.update_with_g1(vk.selector_commitments[2]); // qm
-        // t.update_with_g1(vk.selector_commitments[3]); // qo
-        // t.update_with_g1(vk.selector_commitments[4]); // qk
+
         t.update_with_u256(vk.ql_com_x); // ql
         t.update_with_u256(vk.ql_com_y); // ql
         t.update_with_u256(vk.qr_com_x); // qr
@@ -74,9 +66,13 @@ library PlonkVerifier{
         for (uint i=0; i<proof.wire_committed_commitments.length; i++){
             t.update_with_g1(proof.wire_committed_commitments[i]); // PI2_i
         }
-        t.update_with_g1(proof.wire_commitments[0]); // [L]
-        t.update_with_g1(proof.wire_commitments[1]); // [R]
-        t.update_with_g1(proof.wire_commitments[2]); // [O]
+
+        t.update_with_u256(proof.l_com_x);
+        t.update_with_u256(proof.l_com_y);
+        t.update_with_u256(proof.r_com_x);
+        t.update_with_u256(proof.r_com_y);
+        t.update_with_u256(proof.o_com_x);
+        t.update_with_u256(proof.o_com_y);
 
         state.gamma = t.get_challenge();
 
@@ -253,47 +249,45 @@ library PlonkVerifier{
         uint256 rl =  Fr.mul(proof.wire_values_at_zeta[0], proof.wire_values_at_zeta[1]);
 
         // multi exp part
+        Bn254.G1Point memory linearised_polynomial;
         Bn254.G1Point memory sel_tmp;
         sel_tmp.X = vk.ql_com_x;
         sel_tmp.Y = vk.ql_com_y;
-        // state.linearised_polynomial = Bn254.point_mul(vk.selector_commitments[0], proof.wire_values_at_zeta[0]);
-        state.linearised_polynomial = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[0]);
+        linearised_polynomial = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[0]);
         sel_tmp.X = vk.qr_com_x;
         sel_tmp.Y = vk.qr_com_y;
-        // Bn254.G1Point memory ptmp = Bn254.point_mul(vk.selector_commitments[1], proof.wire_values_at_zeta[1]);
         Bn254.G1Point memory ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[1]);
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         sel_tmp.X = vk.qm_com_x;
         sel_tmp.Y = vk.qm_com_y;
         ptmp = Bn254.point_mul(sel_tmp, rl);
-        //ptmp = Bn254.point_mul(vk.selector_commitments[2], rl);
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         sel_tmp.X = vk.qo_com_x;
         sel_tmp.Y = vk.qo_com_y;
         ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[2]);
-        // ptmp = Bn254.point_mul(vk.selector_commitments[3], proof.wire_values_at_zeta[2]);
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         sel_tmp.X = vk.qk_com_x;
         sel_tmp.Y = vk.qk_com_y;
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, sel_tmp);
-        // state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, vk.selector_commitments[4]);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, sel_tmp);
 
         for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
             ptmp = Bn254.point_mul(proof.wire_committed_commitments[i], proof.selector_commit_api_at_zeta[i]);
-            state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+            linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
         }
 
         sel_tmp.X = vk.s3_com_x;
         sel_tmp.Y = vk.s3_com_y;
-        // ptmp = Bn254.point_mul(vk.permutation_commitments[2], _s1);
         ptmp = Bn254.point_mul(sel_tmp, _s1);
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         ptmp = Bn254.point_mul(proof.grand_product_commitment, _s2);
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
+        linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
+
+        state.linearised_polynomial_x = linearised_polynomial.X;
+        state.linearised_polynomial_y= linearised_polynomial.Y;
 
     }
 
@@ -307,17 +301,24 @@ library PlonkVerifier{
 
         // TODO if we don't copy manually the coordinates, can't manage to access memory lcoations with yul...
         Bn254.G1Point[] memory digests = new Bn254.G1Point[](7+vk.selector_commitments_commit_api.length);
-        //Bn254.copy_g1(digests[0], state.folded_h);
         digests[0].X = state.folded_h_x;
         digests[0].Y = state.folded_h_y;
-        Bn254.copy_g1(digests[1], state.linearised_polynomial);
-        Bn254.copy_g1(digests[2], proof.wire_commitments[0]);
-        Bn254.copy_g1(digests[3], proof.wire_commitments[1]);
-        Bn254.copy_g1(digests[4], proof.wire_commitments[2]);
-        // Bn254.copy_g1(digests[5], vk.permutation_commitments[0]);
+        digests[1].X = state.linearised_polynomial_x;
+        digests[1].Y = state.linearised_polynomial_y;
+        // Bn254.copy_g1(digests[2], proof.wire_commitments[0]);
+        // Bn254.copy_g1(digests[3], proof.wire_commitments[1]);
+        // Bn254.copy_g1(digests[4], proof.wire_commitments[2]);
+        digests[2].X = proof.l_com_x;
+        digests[2].Y = proof.l_com_y;
+
+        digests[3].X = proof.r_com_x;
+        digests[3].Y = proof.r_com_y;
+        
+        digests[4].X = proof.o_com_x;
+        digests[4].Y = proof.o_com_y;
+        
         digests[5].X = vk.s1_com_x;
         digests[5].Y = vk.s1_com_y;
-        // Bn254.copy_g1(digests[6], vk.permutation_commitments[1]);
         digests[6].X = vk.s2_com_x;
         digests[6].Y = vk.s2_com_y;
         for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){

@@ -14,9 +14,9 @@ library Types {
     int256 constant STATE_WIDTH = 3;
 
     struct VerificationKey {
+
         uint256 domain_size;
-        uint256 omega;                                          // w
-        //Bn254.G1Point[STATE_WIDTH+2] selector_commitments;      // [ql], [qr], [qm], [qo], [qk]
+        uint256 omega;    // w
         uint256 ql_com_x;
         uint256 ql_com_y;
         uint256 qr_com_x;
@@ -27,13 +27,14 @@ library Types {
         uint256 qo_com_y;
         uint256 qk_com_x;
         uint256 qk_com_y;
-        //Bn254.G1Point[STATE_WIDTH] permutation_commitments;     // [Sσ1(x)],[Sσ2(x)],[Sσ3(x)]
+
         uint256 s1_com_x; // [Sσ1(x)]
         uint256 s1_com_y;
         uint256 s2_com_x; // [Sσ2(x)]
         uint256 s2_com_y;
         uint256 s3_com_x; // [Sσ3(x)]
         uint256 s3_com_y;
+
         uint256 coset_shift;                                    // generator of Fr*
         Bn254.G2Point g2_x;                                     // SRS.G2[1]
         Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
@@ -42,7 +43,14 @@ library Types {
     }
 
     struct Proof {
-        Bn254.G1Point[STATE_WIDTH] wire_commitments;            // [a(x)]/[b(x)]/[c(x)]
+        
+        uint256 l_com_x;
+        uint256 l_com_y;
+        uint256 r_com_x;
+        uint256 r_com_y;
+        uint256 o_com_x;
+        uint256 o_com_y;
+
         Bn254.G1Point[STATE_WIDTH] quotient_poly_commitments;   // [t_lo]/[t_mid]/[t_hi]
         uint256[STATE_WIDTH] wire_values_at_zeta;               // a(zeta)/b(zeta)/c(zeta)
         uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
@@ -79,7 +87,8 @@ library Types {
         uint256 folded_h_y;
 
         // commitment to the linearised polynomial
-        Bn254.G1Point linearised_polynomial;
+        uint256 linearised_polynomial_x;
+        uint256 linearised_polynomial_y;
 
         // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
         Kzg.OpeningProof folded_proof;
