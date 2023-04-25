@@ -17,6 +17,7 @@ library Types {
 
         uint256 domain_size;
         uint256 omega;    // w
+
         uint256 ql_com_x;
         uint256 ql_com_y;
         uint256 qr_com_x;
@@ -51,8 +52,20 @@ library Types {
         uint256 o_com_x;
         uint256 o_com_y;
 
-        Bn254.G1Point[STATE_WIDTH] quotient_poly_commitments;   // [t_lo]/[t_mid]/[t_hi]
-        uint256[STATE_WIDTH] wire_values_at_zeta;               // a(zeta)/b(zeta)/c(zeta)
+        //Bn254.G1Point[STATE_WIDTH] quotient_poly_commitments;   // [t_lo]/[t_mid]/[t_hi]
+        // h = h_0 + x^{n+2}h_1 + x^{2(n+2)}h_2
+        uint256 h_0_x; 
+        uint256 h_0_y;
+        uint256 h_1_x;
+        uint256 h_1_y;
+        uint256 h_2_x;
+        uint256 h_2_y;
+       
+        // wire values at zeta
+        uint256 l_at_zeta;
+        uint256 r_at_zeta;
+        uint256 o_at_zeta;
+
         uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
         Bn254.G1Point grand_product_commitment;                 // [z(x)]
         uint256 grand_product_at_zeta_omega;                    // z(w*zeta)

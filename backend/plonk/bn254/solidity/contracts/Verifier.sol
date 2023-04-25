@@ -24,9 +24,9 @@ library PlonkVerifier{
     uint256 constant STATE_WIDTH = 3;
 
     // offset for the proof data (in bytes)
-    uint256 constant proof_quotient_poly_commitments_0 = 0x280;
-    uint256 constant proof_quotient_poly_commitments_1 = 0x2c0;
-    uint256 constant proof_quotient_poly_commitments_2 = 0x300;
+    uint256 constant proof_quotient_poly_commitments_0 = 0xc0;
+    uint256 constant proof_quotient_poly_commitments_1 = 0x100;
+    uint256 constant proof_quotient_poly_commitments_2 = 0x140;
 
     // offset for the state (in bytes)
     uint256 constant state_folded_h = 0xe0;
@@ -84,9 +84,14 @@ library PlonkVerifier{
         state.alpha = t.get_challenge();
 
         t.set_challenge_name("zeta");
-        for (uint256 i = 0; i < proof.quotient_poly_commitments.length; i++) {
-            t.update_with_g1(proof.quotient_poly_commitments[i]);
-        }
+       
+        t.update_with_u256(proof.h_0_x);
+        t.update_with_u256(proof.h_0_y);
+        t.update_with_u256(proof.h_1_x);
+        t.update_with_u256(proof.h_1_y);
+        t.update_with_u256(proof.h_2_x);
+        t.update_with_u256(proof.h_2_y);
+
         state.zeta = t.get_challenge();
     }
 
@@ -120,15 +125,15 @@ library PlonkVerifier{
         uint256 _s1;
         _s1 = Fr.mul(proof.permutation_polynomials_at_zeta[0], state.beta);
         _s1 = Fr.add(_s1, state.gamma);
-        _s1 = Fr.add(_s1, proof.wire_values_at_zeta[0]);  // (l(ζ)+β*s1(ζ)+γ)
+        _s1 = Fr.add(_s1, proof.l_at_zeta);  // (l(ζ)+β*s1(ζ)+γ)
 
         uint256 _s2;
         _s2 = Fr.mul(proof.permutation_polynomials_at_zeta[1], state.beta);
         _s2 = Fr.add(_s2, state.gamma);
-        _s2 = Fr.add(_s2, proof.wire_values_at_zeta[1]); // (r(ζ)+β*s2(ζ)+γ)
+        _s2 = Fr.add(_s2, proof.r_at_zeta); // (r(ζ)+β*s2(ζ)+γ)
 
         uint256 _o;
-        _o = Fr.add(proof.wire_values_at_zeta[2], state.gamma);  // (o(ζ)+γ)
+        _o = Fr.add(proof.o_at_zeta, state.gamma);  // (o(ζ)+γ)
 
         _s1 = Fr.mul(_s1, _s2);
         _s1 = Fr.mul(_s1, _o);
@@ -215,11 +220,11 @@ library PlonkVerifier{
         uint256 w;
         u = Fr.mul(proof.grand_product_at_zeta_omega, state.beta);
         v = Fr.mul(state.beta, proof.permutation_polynomials_at_zeta[0]);
-        v = Fr.add(v, proof.wire_values_at_zeta[0]);
+        v = Fr.add(v, proof.l_at_zeta);
         v = Fr.add(v, state.gamma);
 
         w = Fr.mul(state.beta, proof.permutation_polynomials_at_zeta[1]);
-        w = Fr.add(w, proof.wire_values_at_zeta[1]);
+        w = Fr.add(w, proof.r_at_zeta);
         w = Fr.add(w, state.gamma);
 
         uint256 _s1;
@@ -229,15 +234,15 @@ library PlonkVerifier{
 
         uint256 coset_square = Fr.mul(vk.coset_shift, vk.coset_shift);
         uint256 betazeta = Fr.mul(state.beta, state.zeta);
-        u = Fr.add(betazeta, proof.wire_values_at_zeta[0]);
+        u = Fr.add(betazeta, proof.l_at_zeta);
         u = Fr.add(u, state.gamma); // (l(ζ)+β*ζ+γ)
 
         v = Fr.mul(betazeta, vk.coset_shift);
-        v = Fr.add(v, proof.wire_values_at_zeta[1]);
+        v = Fr.add(v, proof.r_at_zeta);
         v = Fr.add(v, state.gamma); // (r(ζ)+β*μ*ζ+γ)
 
         w = Fr.mul(betazeta, coset_square);
-        w = Fr.add(w, proof.wire_values_at_zeta[2]);
+        w = Fr.add(w, proof.o_at_zeta);
         w = Fr.add(w, state.gamma); // (o(ζ)+β*μ²*ζ+γ)
 
         uint256 _s2 = Fr.mul(u, v);
@@ -246,17 +251,17 @@ library PlonkVerifier{
         _s2 = Fr.mul(_s2, state.alpha);
         _s2 = Fr.add(_s2, state.alpha_square_lagrange); // -α*(l(ζ)+β*ζ+γ)*(r(ζ)+β*u*ζ+γ)*(o(ζ)+β*u²*ζ+γ) + α²*L₁(ζ)
 
-        uint256 rl =  Fr.mul(proof.wire_values_at_zeta[0], proof.wire_values_at_zeta[1]);
+        uint256 rl =  Fr.mul(proof.l_at_zeta, proof.r_at_zeta);
 
         // multi exp part
         Bn254.G1Point memory linearised_polynomial;
         Bn254.G1Point memory sel_tmp;
         sel_tmp.X = vk.ql_com_x;
         sel_tmp.Y = vk.ql_com_y;
-        linearised_polynomial = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[0]);
+        linearised_polynomial = Bn254.point_mul(sel_tmp, proof.l_at_zeta);
         sel_tmp.X = vk.qr_com_x;
         sel_tmp.Y = vk.qr_com_y;
-        Bn254.G1Point memory ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[1]);
+        Bn254.G1Point memory ptmp = Bn254.point_mul(sel_tmp, proof.r_at_zeta);
         linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         sel_tmp.X = vk.qm_com_x;
@@ -266,7 +271,7 @@ library PlonkVerifier{
 
         sel_tmp.X = vk.qo_com_x;
         sel_tmp.Y = vk.qo_com_y;
-        ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[2]);
+        ptmp = Bn254.point_mul(sel_tmp, proof.o_at_zeta);
         linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         sel_tmp.X = vk.qk_com_x;
@@ -313,7 +318,7 @@ library PlonkVerifier{
 
         digests[3].X = proof.r_com_x;
         digests[3].Y = proof.r_com_y;
-        
+
         digests[4].X = proof.o_com_x;
         digests[4].Y = proof.o_com_y;
         
@@ -331,9 +336,9 @@ library PlonkVerifier{
         batch_opening_proof.claimed_values = new uint256[](7+proof.selector_commit_api_at_zeta.length);
         batch_opening_proof.claimed_values[0] = proof.quotient_polynomial_at_zeta;
         batch_opening_proof.claimed_values[1] = proof.linearization_polynomial_at_zeta;
-        batch_opening_proof.claimed_values[2] = proof.wire_values_at_zeta[0];
-        batch_opening_proof.claimed_values[3] = proof.wire_values_at_zeta[1];
-        batch_opening_proof.claimed_values[4] = proof.wire_values_at_zeta[2];
+        batch_opening_proof.claimed_values[2] = proof.l_at_zeta;
+        batch_opening_proof.claimed_values[3] = proof.r_at_zeta;
+        batch_opening_proof.claimed_values[4] = proof.o_at_zeta;
         batch_opening_proof.claimed_values[5] = proof.permutation_polynomials_at_zeta[0];
         batch_opening_proof.claimed_values[6] = proof.permutation_polynomials_at_zeta[1];
         //batch_opening_proof.claimed_values[7] = proof.qcprime_at_zeta;
