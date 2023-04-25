@@ -194,7 +194,7 @@ library Kzg {
     }
 
     function batch_verify_multi_points(Bn254.G1Point[] memory digests, OpeningProof[] memory proofs, uint256[] memory points, Bn254.G2Point memory g2)
-    internal returns(bool)
+    internal view returns(bool)
     {
 
         require(digests.length == proofs.length);
@@ -220,7 +220,7 @@ library Kzg {
         Bn254.G1Point memory folded_digests;
         Bn254.G1Point memory folded_quotients;
         Bn254.G1Point memory folded_points_quotients;
-        
+
         uint256 folded_evals;
         (folded_points_quotients, folded_digests, folded_quotients, folded_evals) = fold_digests_quotients_evals(lambda, points, digests, proofs);
 
