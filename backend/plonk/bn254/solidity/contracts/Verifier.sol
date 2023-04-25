@@ -80,7 +80,9 @@ library PlonkVerifier{
         state.beta = t.get_challenge();
 
         t.set_challenge_name("alpha");
-        t.update_with_g1(proof.grand_product_commitment);
+        //t.update_with_g1(proof.grand_product_commitment);
+        t.update_with_u256(proof.grand_product_commitment_x);
+        t.update_with_u256(proof.grand_product_commitment_y);
         state.alpha = t.get_challenge();
 
         t.set_challenge_name("zeta");
@@ -288,7 +290,9 @@ library PlonkVerifier{
         ptmp = Bn254.point_mul(sel_tmp, _s1);
         linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
-        ptmp = Bn254.point_mul(proof.grand_product_commitment, _s2);
+        sel_tmp.X = proof.grand_product_commitment_x;
+        sel_tmp.Y = proof.grand_product_commitment_y;
+        ptmp = Bn254.point_mul(sel_tmp, _s2);
         linearised_polynomial = Bn254.point_add(linearised_polynomial, ptmp);
 
         state.linearised_polynomial_x = linearised_polynomial.X;
@@ -381,7 +385,9 @@ library PlonkVerifier{
         // step 5: batch verify the folded proof and the opening proof at omega*zeta
         Bn254.G1Point[] memory digests = new Bn254.G1Point[](2);
         Bn254.copy_g1(digests[0], state.folded_digests);
-        Bn254.copy_g1(digests[1], proof.grand_product_commitment);
+        // Bn254.copy_g1(digests[1], proof.grand_product_commitment);
+        digests[1].X = proof.grand_product_commitment_x;
+        digests[1].Y = proof.grand_product_commitment_y;
         
         Kzg.OpeningProof[] memory proofs = new Kzg.OpeningProof[](2);
         
