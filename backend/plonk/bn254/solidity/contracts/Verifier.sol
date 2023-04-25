@@ -21,6 +21,8 @@ library PlonkVerifier{
     using Polynomials for *;
     using Types for *;
 
+    uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+
     // offset for the proof data (in bytes)
     uint256 constant proof_l_commitment = 0x00;
     uint256 constant proof_r_commitment = 0x40;
@@ -150,36 +152,61 @@ library PlonkVerifier{
         }
 
         uint256 _s1;
-        _s1 = Fr.mul(proof.s1_at_zeta, state.beta);
-        _s1 = Fr.add(_s1, state.gamma);
-        _s1 = Fr.add(_s1, proof.l_at_zeta);  // (l(ζ)+β*s1(ζ)+γ)
-
         uint256 _s2;
-        _s2 = Fr.mul(proof.s2_at_zeta, state.beta);
-        _s2 = Fr.add(_s2, state.gamma);
-        _s2 = Fr.add(_s2, proof.r_at_zeta); // (r(ζ)+β*s2(ζ)+γ)
+    
+        assembly {
 
-        uint256 _o;
-        _o = Fr.add(proof.o_at_zeta, state.gamma);  // (o(ζ)+γ)
+            // (l(ζ)+β*s1(ζ)+γ)
+            let s1 := mload(0x40)
+            mstore(s1, mulmod(mload(add(proof,proof_s1_at_zeta)),mload(add(state, state_beta)), r_mod))
+            mstore(s1, addmod(mload(s1), mload(add(state, state_gamma)), r_mod))
+            mstore(s1, addmod(mload(s1), mload(add(proof, proof_l_at_zeta)), r_mod))
 
-        _s1 = Fr.mul(_s1, _s2);
-        _s1 = Fr.mul(_s1, _o);
-        _s1 = Fr.mul(_s1, state.alpha);
-        _s1 = Fr.mul(_s1, proof.grand_product_at_zeta_omega); //  α*(Z(μζ))*(l(ζ)+β*s1(ζ)+γ)*(r(ζ)+β*s2(ζ)+γ)*(o(ζ)+γ)
+            // (r(ζ)+β*s2(ζ)+γ)
+            let s2 := add(s1,0x20)
+            mstore(s2, mulmod(mload(add(proof,proof_s2_at_zeta)),mload(add(state, state_beta)), r_mod))
+            mstore(s2, addmod(mload(s2), mload(add(state, state_gamma)), r_mod))
+            mstore(s2, addmod(mload(s2), mload(add(proof, proof_r_at_zeta)), r_mod))
+            _s2 := mload(s2)
+
+            // (o(ζ)+γ)
+            let o := add(s1,0x40)
+            mstore(o, addmod(mload(add(proof,proof_o_at_zeta)), mload(add(state, state_gamma)), r_mod))
+
+            //  α*(Z(μζ))*(l(ζ)+β*s1(ζ)+γ)*(r(ζ)+β*s2(ζ)+γ)*(o(ζ)+γ)
+            mstore(s1, mulmod(mload(s1), mload(s2), r_mod))
+            mstore(s1, mulmod(mload(s1), mload(o), r_mod))
+            mstore(s1, mulmod(mload(s1), mload(add(state, state_alpha)), r_mod))
+            mstore(s1, mulmod(mload(s1), mload(add(proof, proof_grand_product_at_zeta_omega)), r_mod))
+            _s1 := mload(s1)
+        }
 
         state.alpha_square_lagrange = Polynomials.compute_ith_lagrange_at_z(0, state.zeta, vk.omega, vk.domain_size);
-        state.alpha_square_lagrange = Fr.mul(state.alpha_square_lagrange, state.alpha);
-        state.alpha_square_lagrange = Fr.mul(state.alpha_square_lagrange, state.alpha);  // α²*L₁(ζ)
-        
-        uint256 computed_quotient;
-        computed_quotient = Fr.add(proof.linearization_polynomial_at_zeta, pi); // linearizedpolynomial + pi(zeta)
-        computed_quotient = Fr.add(computed_quotient, _s1); // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)
-        computed_quotient = Fr.sub(computed_quotient, state.alpha_square_lagrange); // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)-α²*L₁(ζ)
 
-        _s2 = Fr.mul(proof.quotient_polynomial_at_zeta, zeta_power_n_minus_one);
-        
-        // H(ζ)*(\zeta^{n}-1) ==?  lin_pol(\zeta)
-        return computed_quotient == _s2;
+        bool success;
+        assembly {
+
+            // α²*L₁(ζ)
+            mstore(add(state,state_alpha_square_lagrange), mulmod(mload(add(state,state_alpha_square_lagrange)), mload(add(state, state_alpha)), r_mod))
+            mstore(add(state,state_alpha_square_lagrange), mulmod(mload(add(state,state_alpha_square_lagrange)), mload(add(state, state_alpha)), r_mod))
+
+            let computed_quotient := mload(0x40)
+
+            // linearizedpolynomial + pi(zeta)
+            mstore(computed_quotient, addmod(mload(add(proof, proof_linearization_polynomial_at_zeta)), pi, r_mod))
+
+            // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)
+            mstore(computed_quotient, addmod(mload(computed_quotient), _s1, r_mod))
+
+            // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)-α²*L₁(ζ)
+            mstore(computed_quotient, addmod(mload(computed_quotient), sub(r_mod,mload(add(state, state_alpha_square_lagrange))), r_mod))
+
+            // test_quotient := mload(computed_quotient)
+            _s2 := mulmod(mload(add(proof,proof_quotient_polynomial_at_zeta)), zeta_power_n_minus_one, r_mod)
+
+            success := eq(mload(computed_quotient), _s2)
+        }
+        return success;
     }
 
     function fold_h(
