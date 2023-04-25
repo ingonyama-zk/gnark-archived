@@ -29,7 +29,7 @@ library PlonkVerifier{
     uint256 constant proof_quotient_poly_commitments_2 = 0x380;
 
     // offset for the state (in bytes)
-    uint256 constant state_folded_h = 0x160;
+    uint256 constant state_folded_h = 0xe0;
 
     function derive_gamma_beta_alpha_zeta(
 
@@ -41,9 +41,15 @@ library PlonkVerifier{
         TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
         t.set_challenge_name("gamma");
 
-        for (uint256 i = 0; i < vk.permutation_commitments.length; i++) {
-            t.update_with_g1(vk.permutation_commitments[i]);
-        }
+        // for (uint256 i = 0; i < vk.permutation_commitments.length; i++) {
+        //     t.update_with_g1(vk.permutation_commitments[i]);
+        // }
+        t.update_with_u256(vk.s1_com_x);
+        t.update_with_u256(vk.s1_com_y);
+        t.update_with_u256(vk.s2_com_x);
+        t.update_with_u256(vk.s2_com_y);
+        t.update_with_u256(vk.s3_com_x);
+        t.update_with_u256(vk.s3_com_y);
        
         // t.update_with_g1(vk.selector_commitments[0]); // ql
         // t.update_with_g1(vk.selector_commitments[1]); // qr
@@ -185,8 +191,6 @@ library PlonkVerifier{
             let zeta_power_n_plus_two := mload(0x00)
 
             // state.folded_h <- [zeta^{n+2}]proof.quotient_poly_commitments[2]
-            // proof.quotient_poly_commitments[2] at position 0x1c=0x19+4=25+4 in the proof
-            // folded_h at position 0xb=11 in the state
             let folded_h := add(state, state_folded_h)
             let proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_2)
             mstore(folded_h, mload(proof_quotient_poly_commitments))
@@ -282,7 +286,10 @@ library PlonkVerifier{
             state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
         }
 
-        ptmp = Bn254.point_mul(vk.permutation_commitments[2], _s1);
+        sel_tmp.X = vk.s3_com_x;
+        sel_tmp.Y = vk.s3_com_y;
+        // ptmp = Bn254.point_mul(vk.permutation_commitments[2], _s1);
+        ptmp = Bn254.point_mul(sel_tmp, _s1);
         state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
 
         ptmp = Bn254.point_mul(proof.grand_product_commitment, _s2);
@@ -300,13 +307,19 @@ library PlonkVerifier{
 
         // TODO if we don't copy manually the coordinates, can't manage to access memory lcoations with yul...
         Bn254.G1Point[] memory digests = new Bn254.G1Point[](7+vk.selector_commitments_commit_api.length);
-        Bn254.copy_g1(digests[0], state.folded_h);
+        //Bn254.copy_g1(digests[0], state.folded_h);
+        digests[0].X = state.folded_h_x;
+        digests[0].Y = state.folded_h_y;
         Bn254.copy_g1(digests[1], state.linearised_polynomial);
         Bn254.copy_g1(digests[2], proof.wire_commitments[0]);
         Bn254.copy_g1(digests[3], proof.wire_commitments[1]);
         Bn254.copy_g1(digests[4], proof.wire_commitments[2]);
-        Bn254.copy_g1(digests[5], vk.permutation_commitments[0]);
-        Bn254.copy_g1(digests[6], vk.permutation_commitments[1]);
+        // Bn254.copy_g1(digests[5], vk.permutation_commitments[0]);
+        digests[5].X = vk.s1_com_x;
+        digests[5].Y = vk.s1_com_y;
+        // Bn254.copy_g1(digests[6], vk.permutation_commitments[1]);
+        digests[6].X = vk.s2_com_x;
+        digests[6].Y = vk.s2_com_y;
         for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){
             Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
         }

@@ -27,10 +27,16 @@ library Types {
         uint256 qo_com_y;
         uint256 qk_com_x;
         uint256 qk_com_y;
-        Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
-        Bn254.G1Point[STATE_WIDTH] permutation_commitments;     // [Sσ1(x)],[Sσ2(x)],[Sσ3(x)]
+        //Bn254.G1Point[STATE_WIDTH] permutation_commitments;     // [Sσ1(x)],[Sσ2(x)],[Sσ3(x)]
+        uint256 s1_com_x; // [Sσ1(x)]
+        uint256 s1_com_y;
+        uint256 s2_com_x; // [Sσ2(x)]
+        uint256 s2_com_y;
+        uint256 s3_com_x; // [Sσ3(x)]
+        uint256 s3_com_y;
         uint256 coset_shift;                                    // generator of Fr*
         Bn254.G2Point g2_x;                                     // SRS.G2[1]
+        Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
         uint256[] commitment_indices;                           // indices of the public wires resulting from the hash.
 
     }
@@ -68,7 +74,9 @@ library Types {
         uint256 alpha_square_lagrange;
 
         // commitment to H
-        Bn254.G1Point folded_h;
+        //Bn254.G1Point folded_h;
+        uint256 folded_h_x;
+        uint256 folded_h_y;
 
         // commitment to the linearised polynomial
         Bn254.G1Point linearised_polynomial;
