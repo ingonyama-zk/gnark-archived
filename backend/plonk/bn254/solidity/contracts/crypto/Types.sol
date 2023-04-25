@@ -66,7 +66,10 @@ library Types {
         uint256 r_at_zeta;
         uint256 o_at_zeta;
 
-        uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
+        //uint256[STATE_WIDTH-1] permutation_polynomials_at_zeta; // Sσ1(zeta),Sσ2(zeta)
+        uint256 s1_at_zeta; // Sσ1(zeta)
+        uint256 s2_at_zeta; // Sσ2(zeta)
+
         Bn254.G1Point grand_product_commitment;                 // [z(x)]
         uint256 grand_product_at_zeta_omega;                    // z(w*zeta)
         uint256 quotient_polynomial_at_zeta;                    // t(zeta)

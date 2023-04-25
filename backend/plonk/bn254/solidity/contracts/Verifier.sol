@@ -123,12 +123,12 @@ library PlonkVerifier{
         }
 
         uint256 _s1;
-        _s1 = Fr.mul(proof.permutation_polynomials_at_zeta[0], state.beta);
+        _s1 = Fr.mul(proof.s1_at_zeta, state.beta);
         _s1 = Fr.add(_s1, state.gamma);
         _s1 = Fr.add(_s1, proof.l_at_zeta);  // (l(ζ)+β*s1(ζ)+γ)
 
         uint256 _s2;
-        _s2 = Fr.mul(proof.permutation_polynomials_at_zeta[1], state.beta);
+        _s2 = Fr.mul(proof.s2_at_zeta, state.beta);
         _s2 = Fr.add(_s2, state.gamma);
         _s2 = Fr.add(_s2, proof.r_at_zeta); // (r(ζ)+β*s2(ζ)+γ)
 
@@ -219,11 +219,11 @@ library PlonkVerifier{
         uint256 v;
         uint256 w;
         u = Fr.mul(proof.grand_product_at_zeta_omega, state.beta);
-        v = Fr.mul(state.beta, proof.permutation_polynomials_at_zeta[0]);
+        v = Fr.mul(state.beta, proof.s1_at_zeta);
         v = Fr.add(v, proof.l_at_zeta);
         v = Fr.add(v, state.gamma);
 
-        w = Fr.mul(state.beta, proof.permutation_polynomials_at_zeta[1]);
+        w = Fr.mul(state.beta, proof.s2_at_zeta);
         w = Fr.add(w, proof.r_at_zeta);
         w = Fr.add(w, state.gamma);
 
@@ -339,8 +339,8 @@ library PlonkVerifier{
         batch_opening_proof.claimed_values[2] = proof.l_at_zeta;
         batch_opening_proof.claimed_values[3] = proof.r_at_zeta;
         batch_opening_proof.claimed_values[4] = proof.o_at_zeta;
-        batch_opening_proof.claimed_values[5] = proof.permutation_polynomials_at_zeta[0];
-        batch_opening_proof.claimed_values[6] = proof.permutation_polynomials_at_zeta[1];
+        batch_opening_proof.claimed_values[5] = proof.s1_at_zeta;
+        batch_opening_proof.claimed_values[6] = proof.s2_at_zeta;
         //batch_opening_proof.claimed_values[7] = proof.qcprime_at_zeta;
         for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
             batch_opening_proof.claimed_values[7+i] = proof.selector_commit_api_at_zeta[i];
