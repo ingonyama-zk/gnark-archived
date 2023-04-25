@@ -16,8 +16,17 @@ library Types {
     struct VerificationKey {
         uint256 domain_size;
         uint256 omega;                                          // w
-        //Bn254.G1Point[STATE_WIDTH+3] selector_commitments;    // [ql], [qr], [qm], [qo], [qk], [qcp]
-        Bn254.G1Point[STATE_WIDTH+2] selector_commitments;      // [ql], [qr], [qm], [qo], [qk]
+        //Bn254.G1Point[STATE_WIDTH+2] selector_commitments;      // [ql], [qr], [qm], [qo], [qk]
+        uint256 ql_com_x;
+        uint256 ql_com_y;
+        uint256 qr_com_x;
+        uint256 qr_com_y;
+        uint256 qm_com_x;
+        uint256 qm_com_y;
+        uint256 qo_com_x;
+        uint256 qo_com_y;
+        uint256 qk_com_x;
+        uint256 qk_com_y;
         Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
         Bn254.G1Point[STATE_WIDTH] permutation_commitments;     // [Sσ1(x)],[Sσ2(x)],[Sσ3(x)]
         uint256 coset_shift;                                    // generator of Fr*

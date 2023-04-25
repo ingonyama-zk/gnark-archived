@@ -45,11 +45,21 @@ library PlonkVerifier{
             t.update_with_g1(vk.permutation_commitments[i]);
         }
        
-        t.update_with_g1(vk.selector_commitments[0]); // ql
-        t.update_with_g1(vk.selector_commitments[1]); // qr
-        t.update_with_g1(vk.selector_commitments[2]); // qm
-        t.update_with_g1(vk.selector_commitments[3]); // qo
-        t.update_with_g1(vk.selector_commitments[4]); // qk
+        // t.update_with_g1(vk.selector_commitments[0]); // ql
+        // t.update_with_g1(vk.selector_commitments[1]); // qr
+        // t.update_with_g1(vk.selector_commitments[2]); // qm
+        // t.update_with_g1(vk.selector_commitments[3]); // qo
+        // t.update_with_g1(vk.selector_commitments[4]); // qk
+        t.update_with_u256(vk.ql_com_x); // ql
+        t.update_with_u256(vk.ql_com_y); // ql
+        t.update_with_u256(vk.qr_com_x); // qr
+        t.update_with_u256(vk.qr_com_y); // qr
+        t.update_with_u256(vk.qm_com_x); // qm
+        t.update_with_u256(vk.qm_com_y); // qm
+        t.update_with_u256(vk.qo_com_x); // qo
+        t.update_with_u256(vk.qo_com_y); // qo
+        t.update_with_u256(vk.qk_com_x); // qk
+        t.update_with_u256(vk.qk_com_y); // qk
 
         for (uint256 i = 0; i < public_inputs.length; i++) {
             t.update_with_u256(public_inputs[i]);
@@ -239,17 +249,33 @@ library PlonkVerifier{
         uint256 rl =  Fr.mul(proof.wire_values_at_zeta[0], proof.wire_values_at_zeta[1]);
 
         // multi exp part
-        state.linearised_polynomial = Bn254.point_mul(vk.selector_commitments[0], proof.wire_values_at_zeta[0]);
-        Bn254.G1Point memory ptmp = Bn254.point_mul(vk.selector_commitments[1], proof.wire_values_at_zeta[1]);
+        Bn254.G1Point memory sel_tmp;
+        sel_tmp.X = vk.ql_com_x;
+        sel_tmp.Y = vk.ql_com_y;
+        // state.linearised_polynomial = Bn254.point_mul(vk.selector_commitments[0], proof.wire_values_at_zeta[0]);
+        state.linearised_polynomial = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[0]);
+        sel_tmp.X = vk.qr_com_x;
+        sel_tmp.Y = vk.qr_com_y;
+        // Bn254.G1Point memory ptmp = Bn254.point_mul(vk.selector_commitments[1], proof.wire_values_at_zeta[1]);
+        Bn254.G1Point memory ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[1]);
         state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
 
-        ptmp = Bn254.point_mul(vk.selector_commitments[2], rl);
+        sel_tmp.X = vk.qm_com_x;
+        sel_tmp.Y = vk.qm_com_y;
+        ptmp = Bn254.point_mul(sel_tmp, rl);
+        //ptmp = Bn254.point_mul(vk.selector_commitments[2], rl);
         state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
 
-        ptmp = Bn254.point_mul(vk.selector_commitments[3], proof.wire_values_at_zeta[2]);
+        sel_tmp.X = vk.qo_com_x;
+        sel_tmp.Y = vk.qo_com_y;
+        ptmp = Bn254.point_mul(sel_tmp, proof.wire_values_at_zeta[2]);
+        // ptmp = Bn254.point_mul(vk.selector_commitments[3], proof.wire_values_at_zeta[2]);
         state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, ptmp);
 
-        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, vk.selector_commitments[4]);
+        sel_tmp.X = vk.qk_com_x;
+        sel_tmp.Y = vk.qk_com_y;
+        state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, sel_tmp);
+        // state.linearised_polynomial = Bn254.point_add(state.linearised_polynomial, vk.selector_commitments[4]);
 
         for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
             ptmp = Bn254.point_mul(proof.wire_committed_commitments[i], proof.selector_commit_api_at_zeta[i]);
