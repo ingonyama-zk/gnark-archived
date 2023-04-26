@@ -39,11 +39,11 @@ library Types {
         uint256 coset_shift;                                    // generator of Fr*
         
         // 0 + 1*u
-        // uint256 g2_x_0;                                     // SRS.G2[1]
-        // uint256 g2_x_1;
-        // uint256 g2_y_0;
-        // uint256 g2_y_1;
-        Bn254.G2Point g2_x;                                     // SRS.G2[1]
+        uint256 g2_x_0;                                     // SRS.G2[1]
+        uint256 g2_x_1;
+        uint256 g2_y_0;
+        uint256 g2_y_1;
+        // Bn254.G2Point g2_x;                                     // SRS.G2[1]
         Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
         uint256[] commitment_indices;                           // indices of the public wires resulting from the hash.
 

@@ -672,13 +672,14 @@ library PlonkVerifier{
         // emit PrintUint256(state.folded_proof.h_y);
         // emit PrintUint256(state.folded_proof.claimed_value);
 
-        // Bn254.G2Point memory g2_x;
-        // g2_x.X0 = vk.g2_x_0;
-        // g2_x.X1 = vk.g2_x_1;
-        // g2_x.Y0 = vk.g2_y_0;
-        // g2_x.Y0 = vk.g2_y_1;
+        Bn254.G2Point memory g2_x;
 
-        valid = valid && Kzg.batch_verify_multi_points(digests, proofs, points, vk.g2_x);
+        g2_x.X0 = vk.g2_x_0;
+        g2_x.X1 = vk.g2_x_1;
+        g2_x.Y0 = vk.g2_y_0;
+        g2_x.Y1 = vk.g2_y_1;
+
+        valid = valid && Kzg.batch_verify_multi_points(digests, proofs, points, g2_x);
         
         return valid;
     }
