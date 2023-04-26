@@ -45,6 +45,11 @@ library PlonkVerifier{
     uint256 constant proof_quotient_polynomial_at_zeta = 0x280;
     uint256 constant proof_linearization_polynomial_at_zeta = 0x2a0;
 
+    uint256 constant proof_opening_at_zeta_x = 0x2c0;
+    uint256 constant proof_opening_at_zeta_y = 0x2e0;
+
+    uint256 constant proof_selector_commit_api_at_zeta = 0x420;
+
     // offset for the state (in bytes)
     uint256 constant state_alpha = 0x00;
     uint256 constant state_beta = 0x20;
@@ -56,7 +61,38 @@ library PlonkVerifier{
 
     uint256 constant state_alpha_square_lagrange = 0xc0;
 
-    uint256 constant state_folded_h = 0xe0;
+    uint256 constant state_folded_h_x = 0xe0;
+    uint256 constant state_folded_h_y = 0x100;
+
+    uint256 constant state_linearised_polynomial_x = 0x120;
+    uint256 constant state_linearised_polynomial_y = 0x140;
+
+    // verification key
+    uint256 constant vk_domain_size = 0x00;
+    uint256 constant vk_omega = 0x20;
+
+    uint256 constant vk_ql_com_x = 0x40;
+    uint256 constant vk_ql_com_y = 0x60;
+    uint256 constant vk_qr_com_x = 0x80;
+    uint256 constant vk_qr_com_y = 0xa0;
+    uint256 constant vk_qm_com_x = 0xc0;
+    uint256 constant vk_qm_com_y = 0xe0;
+    uint256 constant vk_qo_com_x = 0x100;
+    uint256 constant vk_qo_com_y = 0x120;
+    uint256 constant vk_qk_com_x = 0x140;
+    uint256 constant vk_qk_com_y = 0x160;
+
+    uint256 constant vk_s1_com_x = 0x180;
+    uint256 constant vk_s1_com_y = 0x1a0;
+    uint256 constant vk_s2_com_x = 0x1c0;
+    uint256 constant vk_s2_com_y = 0x1e0;
+    uint256 constant vk_s3_com_x = 0x200;
+    uint256 constant vk_s3_com_y = 0x220;
+
+    // the first at vk+vk_selector_commitments_commit_api is the size of the
+    // commitments_commit_api slice. It's the usual layout after that so
+    // vk_selector_commitments_commit_api + size*0x20 to query the first point
+    uint256 constant vk_selector_commitments_commit_api = 0x340;
 
     function derive_gamma_beta_alpha_zeta(
 
@@ -239,7 +275,7 @@ library PlonkVerifier{
             let zeta_power_n_plus_two := mload(0x00)
 
             // state.folded_h <- [zeta^{n+2}]proof.quotient_poly_commitments[2]
-            let folded_h := add(state, state_folded_h)
+            let folded_h := add(state, state_folded_h_x)
             let proof_quotient_poly_commitments := add(proof, proof_quotient_poly_commitments_2)
             mstore(folded_h, mload(proof_quotient_poly_commitments))
             mstore(add(folded_h,0x20), mload(add(proof_quotient_poly_commitments,0x20)))
@@ -347,21 +383,94 @@ library PlonkVerifier{
 
     event PrintUint256(uint256 a);
 
+    // function fold_state_inline(Bn254.G1Point[] memory digests, BatchOpeningProof memory batch_opening_proof, uint256 point)
+    // internal view returns(OpeningProof memory opening_proof, Bn254.G1Point memory folded_digests)
+    // {
+    //     require(digests.length==batch_opening_proof.claimed_values.length);
+
+    //     TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
+    //     t.set_challenge_name("gamma");
+    //     t.update_with_fr(point);
+    //     for (uint i = 0; i<digests.length; i++){
+    //         t.update_with_g1(digests[i]);
+    //     }
+    //     uint256 gamma = t.get_challenge();
+
+    //      // fold the claimed values
+    //     uint256[] memory gammai = new uint256[](digests.length);
+    //     uint256 r = Fr.r_mod;
+    //     assembly {
+            
+    //         // opening_proof.H <- batch_opening_proof.H
+    //         mstore(opening_proof, mload(add(batch_opening_proof, 0x40)))
+    //         mstore(add(opening_proof,0x20), mload(add(batch_opening_proof, 0x60)))
+
+    //         // opening_proof.claimed_value <- \sum_i batch_opening_proof.claimed_values[i]*gamma[i]
+    //         // gammai <- [1,\gamma,..,\gamma^n]
+    //         mstore(add(gammai,0x20), 1)
+    //         let claimed_value_i := add(batch_opening_proof,0xa0)
+    //         mstore(add(opening_proof,0x40), mload(claimed_value_i))
+    //         let tmp := mload(0x40)
+    //         let n := mload(digests)
+    //         let prev_gamma := add(gammai,0x20)
+    //         for {let i:=1} lt(i,n) {i:=add(i,1)}
+    //         {
+    //             claimed_value_i := add(claimed_value_i, 0x20)
+    //             mstore(add(prev_gamma,0x20), mulmod(mload(prev_gamma),gamma,r))
+    //             mstore(tmp, mulmod(mload(add(prev_gamma,0x20)), mload(claimed_value_i), r))
+    //             mstore(add(opening_proof,0x40), addmod(mload(add(opening_proof,0x40)),  mload(tmp), r))
+    //             prev_gamma := add(prev_gamma,0x20)
+    //         }
+    //     }
+
+    //     // TODO hardcode the multi exp in the previous chunk ?
+    //     folded_digests = Bn254.multi_exp(digests, gammai);
+
+    //     return (opening_proof, folded_digests);
+    // }
+
     function fold_state(
         Types.State memory state,
         Types.Proof memory proof,
         Types.VerificationKey memory vk
-    ) internal view {
+    ) internal {
+
+        // TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
+        // t.set_challenge_name("gamma");
+        // t.update_with_fr(state.zeta);
+        
+        // t.update_with_u256(state.folded_h_x);
+        // t.update_with_u256(state.folded_h_y);
+
+        // t.update_with_u256(state.linearised_polynomial_x);
+        // t.update_with_u256(state.linearised_polynomial_y);
+
+        // t.update_with_u256(proof.l_com_x);
+        // t.update_with_u256(proof.l_com_y);
+        // t.update_with_u256(proof.r_com_x);
+        // t.update_with_u256(proof.r_com_y);
+        // t.update_with_u256(proof.o_com_x);
+        // t.update_with_u256(proof.o_com_y);
+
+        // t.update_with_u256(vk.s1_com_x);
+        // t.update_with_u256(vk.s1_com_y);
+        // t.update_with_u256(vk.s2_com_x);
+        // t.update_with_u256(vk.s2_com_y);
+
+        // for (uint256 i=0; i < vk.selector_commitments_commit_api.length; i++) {
+        //     t.update_with_u256(vk.selector_commitments_commit_api[i].X);
+        //     t.update_with_u256(vk.selector_commitments_commit_api[i].Y);
+        // }
+        // uint256 gamma = t.get_challenge();
 
         // TODO if we don't copy manually the coordinates, can't manage to access memory lcoations with yul...
         Bn254.G1Point[] memory digests = new Bn254.G1Point[](7+vk.selector_commitments_commit_api.length);
         digests[0].X = state.folded_h_x;
         digests[0].Y = state.folded_h_y;
+        
         digests[1].X = state.linearised_polynomial_x;
         digests[1].Y = state.linearised_polynomial_y;
-        // Bn254.copy_g1(digests[2], proof.wire_commitments[0]);
-        // Bn254.copy_g1(digests[3], proof.wire_commitments[1]);
-        // Bn254.copy_g1(digests[4], proof.wire_commitments[2]);
+        
         digests[2].X = proof.l_com_x;
         digests[2].Y = proof.l_com_y;
 
@@ -379,9 +488,119 @@ library PlonkVerifier{
             Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
         }
 
+        uint256 test_point;
+
+        uint256[] memory ss = new uint256[](40);
+        assembly {
+
+            // let bop := add(batch_opening_proof,0x40)
+            // mstore(bop, mload(add(proof, proof_quotient_polynomial_at_zeta)))
+            // mstore(add(bop,0x20), mload(add(proof, add(proof_quotient_polynomial_at_zeta,0x20))))
+
+            // bop := add(bop, 0xa0)
+            // mstore(bop, mload(add(proof, proof_quotient_polynomial_at_zeta)))
+            // bop := add(bop,0x20)
+            // mstore(bop, mload(add(proof, proof_l_at_zeta)))
+            // bop := add(bop,0x20)
+            // mstore(bop, mload(add(proof, proof_r_at_zeta)))
+            // bop := add(bop,0x20)
+            // mstore(bop, mload(add(proof, proof_o_at_zeta)))
+            // bop := add(bop,0x20)
+            // mstore(bop, mload(add(proof, proof_s1_at_zeta)))
+            // bop := add(bop,0x20)
+            // mstore(bop, mload(add(proof, proof_s2_at_zeta)))
+            
+            // let _proof := add(proof, proof_selector_commit_api_at_zeta)
+            // for {let i:=0} lt(i,bop) {i:=add(i,1)}
+            // {
+            //     bop := add(bop, 0x20)
+            //     _proof := add(_proof, 0x20)
+            //     mstore(bop, mload(_proof))
+            // }
+
+
+            // dst <- dst + [s]src
+        //     function point_acc_mul_local(dst,src,s) {
+        //         let buf := mload(0x40)
+        //         mstore(buf,mload(src))
+        //         mstore(add(buf,0x20),mload(add(src,0x20)))
+        //         mstore(add(buf,0x40),mload(s))
+        //         pop(staticcall(gas(),7,buf,0x60,buf,0x40)) // TODO should we check success here ?
+        //         mstore(add(buf,0x40),mload(dst))
+        //         mstore(add(buf,0x60),mload(add(dst,0x20)))
+        //         pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
+        //     }
+
+            // let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
+            // mstore(_digests, mload(add(state, state_folded_h_x)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(state, state_folded_h_y)))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(state, state_linearised_polynomial_x)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(state, state_linearised_polynomial_y)))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, proof_l_commitment)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, add(proof_l_commitment,0x20))))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, proof_r_commitment)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, add(proof_r_commitment,0x20))))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, proof_o_commitment)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(proof, add(proof_o_commitment,0x20))))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(vk, vk_s1_com_x)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(vk, vk_s1_com_y)))
+
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(vk, vk_s2_com_x)))
+            // _digests := add(_digests, 0x20)
+            // mstore(_digests, mload(add(vk, vk_s2_com_y)))
+            // _digests := add(_digests, 0x20)
+
+            // let api_commit := add(vk, vk_selector_commitments_commit_api)
+            // let nb_commitments := mload(api_commit)
+            // test_point := mload(api_commit)
+            // api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
+            // for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
+            // {
+                // mstore(_digests, mload(api_commit))
+                // _digests := add(_digests, 0x20)
+                // api_commit := add(api_commit,0x20)
+                // mstore(_digests, mload(api_commit))
+            //     api_commit := add(api_commit,0x20)
+            //     _digests := add(_digests, 0x20)
+            // }
+
+            // let _ss := add(ss, 0x20)
+            // let _vk := vk
+            // for {let i := 0} lt(i,40) {i:=add(i,1)}
+            // {
+            //     mstore(_ss, mload(_vk))
+            //     _vk := add(_vk, 0x20)
+            //     _ss := add(_ss, 0x20)
+            // }
+        }
+        for (uint i=0; i<40; i++) {
+            if (ss[i]==6072894980673347906024769411958097208049504128219463716820120075337948200814){
+                emit PrintUint256(uint256(i));
+            }
+        }
+
         // TODO perhaps we should we inline all this
         Kzg.BatchOpeningProof memory batch_opening_proof;
-        Bn254.copy_g1(batch_opening_proof.H, proof.opening_at_zeta_proof);
+        //Bn254.copy_g1(batch_opening_proof.H, proof.opening_at_zeta_proof);
+        batch_opening_proof.H.X = proof.opening_at_zeta_proof_x;
+        batch_opening_proof.H.Y = proof.opening_at_zeta_proof_y;
         batch_opening_proof.claimed_values = new uint256[](7+proof.selector_commit_api_at_zeta.length);
         batch_opening_proof.claimed_values[0] = proof.quotient_polynomial_at_zeta;
         batch_opening_proof.claimed_values[1] = proof.linearization_polynomial_at_zeta;
@@ -390,10 +609,10 @@ library PlonkVerifier{
         batch_opening_proof.claimed_values[4] = proof.o_at_zeta;
         batch_opening_proof.claimed_values[5] = proof.s1_at_zeta;
         batch_opening_proof.claimed_values[6] = proof.s2_at_zeta;
-        //batch_opening_proof.claimed_values[7] = proof.qcprime_at_zeta;
         for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
             batch_opening_proof.claimed_values[7+i] = proof.selector_commit_api_at_zeta[i];
         }
+
 
         (state.folded_proof, state.folded_digests) = Kzg.fold_proof(
             digests, 
@@ -403,7 +622,7 @@ library PlonkVerifier{
     } 
 
     function verify(Types.Proof memory proof, Types.VerificationKey memory vk, uint256[] memory public_inputs)
-    internal view returns (bool) {
+    internal     returns (bool) {
 
         Types.State memory state;
         
@@ -452,6 +671,12 @@ library PlonkVerifier{
         // emit PrintUint256(state.folded_proof.h_x);
         // emit PrintUint256(state.folded_proof.h_y);
         // emit PrintUint256(state.folded_proof.claimed_value);
+
+        // Bn254.G2Point memory g2_x;
+        // g2_x.X0 = vk.g2_x_0;
+        // g2_x.X1 = vk.g2_x_1;
+        // g2_x.Y0 = vk.g2_y_0;
+        // g2_x.Y0 = vk.g2_y_1;
 
         valid = valid && Kzg.batch_verify_multi_points(digests, proofs, points, vk.g2_x);
         

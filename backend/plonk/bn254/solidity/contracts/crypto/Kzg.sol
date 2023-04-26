@@ -58,7 +58,7 @@ library Kzg {
     // fold the digests corresponding to a batch opening proof at a given point
     // return the proof associated to the folded digests, and the folded digest
     function fold_proof(Bn254.G1Point[] memory digests, BatchOpeningProof memory batch_opening_proof, uint256 point)
-    internal view returns(OpeningProof memory opening_proof, Bn254.G1Point memory folded_digests)
+    internal returns(OpeningProof memory opening_proof, Bn254.G1Point memory folded_digests)
     {
         require(digests.length==batch_opening_proof.claimed_values.length);
 

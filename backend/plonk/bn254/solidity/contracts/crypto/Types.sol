@@ -38,6 +38,11 @@ library Types {
 
         uint256 coset_shift;                                    // generator of Fr*
         
+        // 0 + 1*u
+        // uint256 g2_x_0;                                     // SRS.G2[1]
+        // uint256 g2_x_1;
+        // uint256 g2_y_0;
+        // uint256 g2_y_1;
         Bn254.G2Point g2_x;                                     // SRS.G2[1]
         Bn254.G1Point[] selector_commitments_commit_api;        // [qcp_i]
         uint256[] commitment_indices;                           // indices of the public wires resulting from the hash.
@@ -79,11 +84,14 @@ library Types {
         uint256 quotient_polynomial_at_zeta;                    // t(zeta)
         uint256 linearization_polynomial_at_zeta;               // r(zeta)
 
-        Bn254.G1Point opening_at_zeta_proof;            // [Wzeta]
+        //Bn254.G1Point opening_at_zeta_proof;            // [Wzeta]
+        uint256 opening_at_zeta_proof_x;            // [Wzeta]
+        uint256 opening_at_zeta_proof_y;
+
         Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
         
-        Bn254.G1Point[] wire_committed_commitments;             // commitment to the wires committed using Commit api
         uint256[] selector_commit_api_at_zeta;                  // qc_i(zeta)
+        Bn254.G1Point[] wire_committed_commitments;             // commitment to the wires committed using Commit api
     }
 
     struct State {

@@ -90,7 +90,9 @@ func getTransactionOpts(privateKey *ecdsa.PrivateKey, auth *bind.TransactOpts, c
 	// auth.GasLimit = uint64(558000) // -> + fold_proof assembly
 	// auth.GasLimit = uint64(555500) // -> + fold_digests_quotients_evals assembly
 	// auth.GasLimit = uint64(554000) // -> + batch_verify_multi_points lambda derivation assembly
-	auth.GasLimit = uint64(564000) // -> + add the require for the pairing... +20k
+	// auth.GasLimit = uint64(564000) // -> + add the require for the pairing... +20k
+	// auth.GasLimit = uint64(563000) // -> + add the require for the pairing... +20k
+	auth.GasLimit = uint64(900000) // -> + add the require for the pairing... +20k
 	auth.GasPrice = gasprice
 
 	return auth, nil
@@ -381,8 +383,8 @@ func main() {
 	for _, vLog := range logs {
 
 		var event interface{}
-		err = contractABI.UnpackIntoInterface(&event, "PrintBool", vLog.Data)
-		// err = contractABI.UnpackIntoInterface(&event, "PrintUint256", vLog.Data)
+		// err = contractABI.UnpackIntoInterface(&event, "PrintBool", vLog.Data)
+		err = contractABI.UnpackIntoInterface(&event, "PrintUint256", vLog.Data)
 		checkError(err)
 		fmt.Println(event)
 	}
