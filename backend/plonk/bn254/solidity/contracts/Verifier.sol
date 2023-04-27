@@ -92,7 +92,7 @@ library PlonkVerifier{
     // the first at vk+vk_selector_commitments_commit_api is the size of the
     // commitments_commit_api slice. It's the usual layout after that so
     // vk_selector_commitments_commit_api + size*0x20 to query the first point
-    uint256 constant vk_selector_commitments_commit_api = 0x340;
+    uint256 constant vk_selector_commitments_commit_api = 0x2e0;
 
     function derive_gamma_beta_alpha_zeta(
 
@@ -465,32 +465,29 @@ library PlonkVerifier{
 
         // TODO if we don't copy manually the coordinates, can't manage to access memory lcoations with yul...
         Bn254.G1Point[] memory digests = new Bn254.G1Point[](7+vk.selector_commitments_commit_api.length);
-        digests[0].X = state.folded_h_x;
-        digests[0].Y = state.folded_h_y;
+        // digests[0].X = state.folded_h_x;
+        // digests[0].Y = state.folded_h_y;
         
-        digests[1].X = state.linearised_polynomial_x;
-        digests[1].Y = state.linearised_polynomial_y;
+        // digests[1].X = state.linearised_polynomial_x;
+        // digests[1].Y = state.linearised_polynomial_y;
         
-        digests[2].X = proof.l_com_x;
-        digests[2].Y = proof.l_com_y;
+        // digests[2].X = proof.l_com_x;
+        // digests[2].Y = proof.l_com_y;
 
-        digests[3].X = proof.r_com_x;
-        digests[3].Y = proof.r_com_y;
+        // digests[3].X = proof.r_com_x;
+        // digests[3].Y = proof.r_com_y;
 
-        digests[4].X = proof.o_com_x;
-        digests[4].Y = proof.o_com_y;
+        // digests[4].X = proof.o_com_x;
+        // digests[4].Y = proof.o_com_y;
         
-        digests[5].X = vk.s1_com_x;
-        digests[5].Y = vk.s1_com_y;
-        digests[6].X = vk.s2_com_x;
-        digests[6].Y = vk.s2_com_y;
-        for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){
-            Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
-        }
+        // digests[5].X = vk.s1_com_x;
+        // digests[5].Y = vk.s1_com_y;
+        // digests[6].X = vk.s2_com_x;
+        // digests[6].Y = vk.s2_com_y;
+        // for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){
+        //     Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
+        // }
 
-        uint256 test_point;
-
-        uint256[] memory ss = new uint256[](40);
         assembly {
 
             // let bop := add(batch_opening_proof,0x40)
@@ -531,69 +528,67 @@ library PlonkVerifier{
         //         pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
         //     }
 
-            // let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
-            // mstore(_digests, mload(add(state, state_folded_h_x)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(state, state_folded_h_y)))
+            let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
+            mstore(_digests, mload(add(state, state_folded_h_x)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(state, state_folded_h_y)))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(state, state_linearised_polynomial_x)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(state, state_linearised_polynomial_y)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(state, state_linearised_polynomial_x)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(state, state_linearised_polynomial_y)))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, proof_l_commitment)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, add(proof_l_commitment,0x20))))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, proof_l_commitment)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, add(proof_l_commitment,0x20))))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, proof_r_commitment)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, add(proof_r_commitment,0x20))))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, proof_r_commitment)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, add(proof_r_commitment,0x20))))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, proof_o_commitment)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(proof, add(proof_o_commitment,0x20))))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, proof_o_commitment)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(proof, add(proof_o_commitment,0x20))))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(vk, vk_s1_com_x)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(vk, vk_s1_com_y)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(vk, vk_s1_com_x)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(vk, vk_s1_com_y)))
 
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(vk, vk_s2_com_x)))
-            // _digests := add(_digests, 0x20)
-            // mstore(_digests, mload(add(vk, vk_s2_com_y)))
-            // _digests := add(_digests, 0x20)
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(vk, vk_s2_com_x)))
+            _digests := add(_digests, 0x20)
+            mstore(_digests, mload(add(vk, vk_s2_com_y)))
+            _digests := add(_digests, 0x20)
 
-            // let api_commit := add(vk, vk_selector_commitments_commit_api)
-            // let nb_commitments := mload(api_commit)
-            // test_point := mload(api_commit)
-            // api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
-            // for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
-            // {
-                // mstore(_digests, mload(api_commit))
-                // _digests := add(_digests, 0x20)
-                // api_commit := add(api_commit,0x20)
-                // mstore(_digests, mload(api_commit))
-            //     api_commit := add(api_commit,0x20)
-            //     _digests := add(_digests, 0x20)
-            // }
+            let api_commit := add(vk, vk_selector_commitments_commit_api)
+            api_commit := mload(api_commit)
+            let nb_commitments := mload(api_commit)
+            api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
+            for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
+            {
+                mstore(_digests, mload(api_commit))
+                _digests := add(_digests, 0x20)
+                api_commit := add(api_commit,0x20)
+                mstore(_digests, mload(api_commit))
+                api_commit := add(api_commit,0x20)
+                _digests := add(_digests, 0x20)
+            }
 
             // let _ss := add(ss, 0x20)
-            // let _vk := vk
-            // for {let i := 0} lt(i,40) {i:=add(i,1)}
+            // let _vk := add(vk, vk_selector_commitments_commit_api)
+            // _vk := mload(_vk)
+            // let n := mload(_vk)
+            // _vk := add(_vk, mul(add(n,1),0x20))
+            // for {let i := 0} lt(i,2) {i:=add(i,1)}
             // {
             //     mstore(_ss, mload(_vk))
             //     _vk := add(_vk, 0x20)
             //     _ss := add(_ss, 0x20)
             // }
-        }
-        for (uint i=0; i<40; i++) {
-            if (ss[i]==6072894980673347906024769411958097208049504128219463716820120075337948200814){
-                emit PrintUint256(uint256(i));
-            }
         }
 
         // TODO perhaps we should we inline all this
@@ -665,12 +660,6 @@ library PlonkVerifier{
         uint256[] memory points = new uint256[](2);
         points[0] = state.zeta;
         points[1] = Fr.mul(state.zeta, vk.omega);
-
-        // emit PrintUint256(state.folded_digests.X);
-        // emit PrintUint256(state.folded_digests.Y);
-        // emit PrintUint256(state.folded_proof.h_x);
-        // emit PrintUint256(state.folded_proof.h_y);
-        // emit PrintUint256(state.folded_proof.claimed_value);
 
         Bn254.G2Point memory g2_x;
 
