@@ -488,9 +488,26 @@ library PlonkVerifier{
         //     Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
         // }
 
+        // TODO perhaps we should we inline all this
+        Kzg.BatchOpeningProof memory batch_opening_proof;
+        //Bn254.copy_g1(batch_opening_proof.H, proof.opening_at_zeta_proof);
+        batch_opening_proof.H.X = proof.opening_at_zeta_proof_x;
+        batch_opening_proof.H.Y = proof.opening_at_zeta_proof_y;
+        batch_opening_proof.claimed_values = new uint256[](7+proof.selector_commit_api_at_zeta.length);
+        batch_opening_proof.claimed_values[0] = proof.quotient_polynomial_at_zeta;
+        batch_opening_proof.claimed_values[1] = proof.linearization_polynomial_at_zeta;
+        batch_opening_proof.claimed_values[2] = proof.l_at_zeta;
+        batch_opening_proof.claimed_values[3] = proof.r_at_zeta;
+        batch_opening_proof.claimed_values[4] = proof.o_at_zeta;
+        batch_opening_proof.claimed_values[5] = proof.s1_at_zeta;
+        batch_opening_proof.claimed_values[6] = proof.s2_at_zeta;
+        for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
+            batch_opening_proof.claimed_values[7+i] = proof.selector_commit_api_at_zeta[i];
+        }
+
         assembly {
 
-            // let bop := add(batch_opening_proof,0x40)
+            // let bop := batch_opening_proof
             // mstore(bop, mload(add(proof, proof_quotient_polynomial_at_zeta)))
             // mstore(add(bop,0x20), mload(add(proof, add(proof_quotient_polynomial_at_zeta,0x20))))
 
@@ -528,6 +545,12 @@ library PlonkVerifier{
         //         pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
         //     }
 
+            // the purpose of this function if to easily see in the code
+            // when a structure is dereferenced instead of justs loading a value
+            function dereference(pointer)->value {
+                value := mload(pointer)
+            }
+
             let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
             mstore(_digests, mload(add(state, state_folded_h_x)))
             _digests := add(_digests, 0x20)
@@ -564,8 +587,7 @@ library PlonkVerifier{
             mstore(_digests, mload(add(vk, vk_s2_com_y)))
             _digests := add(_digests, 0x20)
 
-            let api_commit := add(vk, vk_selector_commitments_commit_api)
-            api_commit := mload(api_commit)
+            let api_commit := dereference(add(vk, vk_selector_commitments_commit_api))
             let nb_commitments := mload(api_commit)
             api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
             for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
@@ -577,35 +599,6 @@ library PlonkVerifier{
                 api_commit := add(api_commit,0x20)
                 _digests := add(_digests, 0x20)
             }
-
-            // let _ss := add(ss, 0x20)
-            // let _vk := add(vk, vk_selector_commitments_commit_api)
-            // _vk := mload(_vk)
-            // let n := mload(_vk)
-            // _vk := add(_vk, mul(add(n,1),0x20))
-            // for {let i := 0} lt(i,2) {i:=add(i,1)}
-            // {
-            //     mstore(_ss, mload(_vk))
-            //     _vk := add(_vk, 0x20)
-            //     _ss := add(_ss, 0x20)
-            // }
-        }
-
-        // TODO perhaps we should we inline all this
-        Kzg.BatchOpeningProof memory batch_opening_proof;
-        //Bn254.copy_g1(batch_opening_proof.H, proof.opening_at_zeta_proof);
-        batch_opening_proof.H.X = proof.opening_at_zeta_proof_x;
-        batch_opening_proof.H.Y = proof.opening_at_zeta_proof_y;
-        batch_opening_proof.claimed_values = new uint256[](7+proof.selector_commit_api_at_zeta.length);
-        batch_opening_proof.claimed_values[0] = proof.quotient_polynomial_at_zeta;
-        batch_opening_proof.claimed_values[1] = proof.linearization_polynomial_at_zeta;
-        batch_opening_proof.claimed_values[2] = proof.l_at_zeta;
-        batch_opening_proof.claimed_values[3] = proof.r_at_zeta;
-        batch_opening_proof.claimed_values[4] = proof.o_at_zeta;
-        batch_opening_proof.claimed_values[5] = proof.s1_at_zeta;
-        batch_opening_proof.claimed_values[6] = proof.s2_at_zeta;
-        for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
-            batch_opening_proof.claimed_values[7+i] = proof.selector_commit_api_at_zeta[i];
         }
 
 
@@ -653,8 +646,8 @@ library PlonkVerifier{
         Kzg.copy_opening_proof(proofs[0], state.folded_proof);
 
         //Bn254.copy_g1(proofs[1].H, proof.opening_at_zeta_omega_proof);
-        proofs[1].h_x = proof.opening_at_zeta_omega_proof.X;
-        proofs[1].h_y = proof.opening_at_zeta_omega_proof.Y;
+        proofs[1].h_x = proof.opening_at_zeta_omega_proof_x;
+        proofs[1].h_y = proof.opening_at_zeta_omega_proof_y;
         proofs[1].claimed_value = proof.grand_product_at_zeta_omega;
 
         uint256[] memory points = new uint256[](2);

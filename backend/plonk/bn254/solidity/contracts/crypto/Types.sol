@@ -88,7 +88,9 @@ library Types {
         uint256 opening_at_zeta_proof_x;            // [Wzeta]
         uint256 opening_at_zeta_proof_y;
 
-        Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
+        //Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
+        uint256 opening_at_zeta_omega_proof_x;
+        uint256 opening_at_zeta_omega_proof_y;
         
         uint256[] selector_commit_api_at_zeta;                  // qc_i(zeta)
         Bn254.G1Point[] wire_committed_commitments;             // commitment to the wires committed using Commit api
