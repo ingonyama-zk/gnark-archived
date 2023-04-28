@@ -5,22 +5,26 @@ import {PlonkVerifier} from '../Verifier.sol';
 import {Types} from '../crypto/Types.sol';
 import {TranscriptLibrary} from '../crypto/Transcript.sol';
 import {Bn254} from '../crypto/Bn254.sol';
+import {UtilsFr} from '../crypto/HashFr.sol';
+import {Polynomials} from '../crypto/Polynomials.sol';
+import {Fr} from '../crypto/Fr.sol';
 
 contract TestContract {
 
-  // using Polynomials for *;
+  using Polynomials for *;
   using PlonkVerifier for *;
   using Types for *;
   using TranscriptLibrary for *;
-  // using Fr for *;
+  using Fr for *;
   using Bn254 for *;
-  // using Kzg for *;
+  using UtilsFr for *;
 
   uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
   // ----------------------- vk ---------------------
 
   uint256 constant vk_domain_size = 32;
+  uint256 constant vk_inv_domain_size = 21204235282094297871551205565717985242031228012903033270457635305745314480129;
   uint256 constant vk_omega = 4419234939496763621076330863786513495701855246241724391626358375488475697872;
   uint256 constant vk_ql_com_x = 3249492299937356830250489011041180308067992016591401527068121784106989719648;
   uint256 constant vk_ql_com_y = 10459965615643388455781136436726437288800547058370943251873623010731177440661;
@@ -41,21 +45,23 @@ contract TestContract {
 
   uint256 constant vk_coset_shift = 5;
 
-  function get_vk_selector_commitments_commit_api() 
-  internal view returns (uint256[] memory) {
-    uint256[] memory res = new uint256[](2);
-    res[0] = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
-    res[1] = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
+  function get_vk_selector_commitments_commit_api(uint256[] memory v) 
+  internal view {
+    v[0] = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
+    v[1] = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
   }
-  // uint256 constant vk_selector_commitments_commit_api_0_x = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
-  // uint256 constant vk_selector_commitments_commit_api_0_y = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
+
+  function get_vk_commitments_indices_commit_api(uint256[] memory v)
+  internal view {
+    v[0] = 3;
+  }
 
   uint256 constant vk_g2_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
   uint256 constant vk_g2_x_1 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
   uint256 constant vk_g2_y_0 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
   uint256 constant vk_g2_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
 
-  uint256 constant vk_commitment_indices_0 = 3;
+  uint256 constant vk_nb_commitments_commit_api = 1;
 
   // ------------------------------------------------
 
@@ -269,13 +275,9 @@ contract TestContract {
     }
 
     uint256[] memory wire_committed_commitments;
-    uint256 nb_commit_api;
-    assembly {
-      nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
-    }
-    wire_committed_commitments = new uint256[](2*nb_commit_api);
+    wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
     load_wire_commitments_commit_api(wire_committed_commitments, proof);
-    for (uint i=0; i<2*nb_commit_api; i++){
+    for (uint i=0; i<2*vk_nb_commitments_commit_api; i++){
       t.update_with_u256(wire_committed_commitments[i]); // PI2_i
     }
     uint256 p_l_com_x;
@@ -356,7 +358,7 @@ contract TestContract {
   }
 
   function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
-  internal {// returns(uint256, uint256, uint256, uint256) {
+  internal returns(uint256, uint256, uint256, uint256) {
 
       TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
       uint256 gamma = derive_gamma(proof, public_inputs, t);
@@ -368,54 +370,16 @@ contract TestContract {
 
       uint256 zeta = derive_zeta(proof, t);
 
-      assembly {
-        let mem := mload(0x40)
-        mstore(add(mem, state_alpha), alpha)
-        mstore(add(mem, state_beta), beta)
-        mstore(add(mem, state_gamma), gamma)
-        mstore(add(mem, state_zeta), zeta)
-      }
-
-      //return (gamma, beta, alpha, zeta);
-  }
-
-
-  function test_assembly() 
-  public {
-
-    uint256[] memory public_inputs = new uint256[](3);
-    public_inputs[0] = 6;
-    public_inputs[1] = 7;
-    public_inputs[2] = 8;
-    
-    bytes memory proof = get_proof();
-
-    uint256 gamma;
-    uint256 beta;
-    uint256 alpha;
-    uint256 zeta;
-    derive_gamma_beta_alpha_zeta(proof, public_inputs);
-    assembly {
-      let mem := mload(0x40)
-      gamma := mload(add(mem, state_gamma))
-      beta := mload(add(mem, state_beta))
-      alpha := mload(add(mem, state_alpha))
-      zeta := mload(add(mem, state_zeta))
-    }
-    emit PrintUint256(gamma);
-    emit PrintUint256(beta);
-    emit PrintUint256(alpha);
-    emit PrintUint256(zeta);
+      return (gamma, beta, alpha, zeta);
   }
 
   function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
   internal {
-    uint256 nb_commit_api = wire_commitments.length/2;
     assembly {
       let w := add(wire_commitments, 0x20)
       let p := add(proof, proof_nb_selector_commit_api_at_zeta)
-      p := add(p, mul(add(nb_commit_api,1), 0x20))
-      for {let i:=0} lt(i, mul(nb_commit_api,2)) {i:=add(i,1)}
+      p := add(p, mul(add(vk_nb_commitments_commit_api,1), 0x20))
+      for {let i:=0} lt(i, mul(vk_nb_commitments_commit_api,2)) {i:=add(i,1)}
       {
         mstore(w, mload(p))
         w := add(w,0x20)
@@ -427,13 +391,153 @@ contract TestContract {
     }
   }
 
+  function compute_ith_lagrange_at_z(uint256 zeta, uint256 i) 
+  internal returns (uint256) {
+
+    uint256 res;
+    uint256 t;
+    assembly {
+
+      // _n^_i [r]
+      function pow_local(x, e)->result {
+          let mPtr := mload(0x40)
+          mstore(mPtr, 0x20)
+          mstore(add(mPtr, 0x20), 0x20)
+          mstore(add(mPtr, 0x40), 0x20)
+          mstore(add(mPtr, 0x60), x)
+          mstore(add(mPtr, 0x80), e)
+          mstore(add(mPtr, 0xa0), r_mod)
+          pop(staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20))
+          result := mload(0x00)
+      }
+
+      let w := pow_local(vk_omega,i) // w**i
+      i := addmod(zeta, sub(r_mod, w), r_mod) // z-w**i
+      zeta := pow_local(zeta, vk_domain_size) // z**n
+      zeta := addmod(zeta, sub(r_mod, 1), r_mod) // z**n-1
+      w := mulmod(w, vk_inv_domain_size, r_mod) // w**i/n
+      i := pow_local(i, sub(r_mod,2)) // (z-w**i)**-1
+      w := mulmod(w, i, r_mod) // w**i/n*(z-w)**-1
+      res := mulmod(w, zeta, r_mod)
+    }
+    
+    return res;
+  }
+
+  function compute_pi(
+        bytes memory proof,
+        uint256[] memory public_inputs,
+        uint256 zeta
+    ) internal returns (uint256) {
+
+        // evaluation of Z=Xⁿ⁻¹ at ζ
+        uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
+        zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
+
+        // compute PI = ∑_{i<n} Lᵢ*wᵢ
+        uint256 pi = Polynomials.compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
+        
+        uint256[] memory commitment_indices = new uint256[](vk_nb_commitments_commit_api);
+        get_vk_commitments_indices_commit_api(commitment_indices);
+    
+        if (vk_nb_commitments_commit_api > 0) {
+
+          uint256[] memory wire_committed_commitments;
+          wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
+          load_wire_commitments_commit_api(wire_committed_commitments, proof);
+
+          string memory dst = "BSB22-Plonk";
+
+          for (uint256 i=0; i<vk_nb_commitments_commit_api; i++){
+              
+              uint256 hash_res = UtilsFr.hash_fr(wire_committed_commitments[2*i], wire_committed_commitments[2*i+1], dst);
+              uint256 a = compute_ith_lagrange_at_z(zeta, commitment_indices[i]+public_inputs.length);
+              
+              // a = Fr.mul(hash_res, a);
+              // pi = Fr.add(pi, a);
+              assembly {
+                a := mulmod(hash_res, a, r_mod)
+                pi := addmod(pi, a, r_mod)
+              }
+          }
+        }
+        
+        return pi;
+    
+        // assembly {
+
+        //     // (l(ζ)+β*s1(ζ)+γ)
+        //     let s1 := mload(0x40)
+        //     mstore(s1, mulmod(mload(add(proof,proof_s1_at_zeta)),mload(add(state, state_beta)), r_mod))
+        //     mstore(s1, addmod(mload(s1), mload(add(state, state_gamma)), r_mod))
+        //     mstore(s1, addmod(mload(s1), mload(add(proof, proof_l_at_zeta)), r_mod))
+
+        //     // (r(ζ)+β*s2(ζ)+γ)
+        //     let s2 := add(s1,0x20)
+        //     mstore(s2, mulmod(mload(add(proof,proof_s2_at_zeta)),mload(add(state, state_beta)), r_mod))
+        //     mstore(s2, addmod(mload(s2), mload(add(state, state_gamma)), r_mod))
+        //     mstore(s2, addmod(mload(s2), mload(add(proof, proof_r_at_zeta)), r_mod))
+        //     // _s2 := mload(s2)
+
+        //     // (o(ζ)+γ)
+        //     let o := add(s1,0x40)
+        //     mstore(o, addmod(mload(add(proof,proof_o_at_zeta)), mload(add(state, state_gamma)), r_mod))
+
+        //     //  α*(Z(μζ))*(l(ζ)+β*s1(ζ)+γ)*(r(ζ)+β*s2(ζ)+γ)*(o(ζ)+γ)
+        //     mstore(s1, mulmod(mload(s1), mload(s2), r_mod))
+        //     mstore(s1, mulmod(mload(s1), mload(o), r_mod))
+        //     mstore(s1, mulmod(mload(s1), mload(add(state, state_alpha)), r_mod))
+        //     mstore(s1, mulmod(mload(s1), mload(add(proof, proof_grand_product_at_zeta_omega)), r_mod))
+
+        //     // α²*L₁(ζ)
+        //     mstore(add(state,state_alpha_square_lagrange), mulmod(mload(add(state,state_alpha_square_lagrange)), mload(add(state, state_alpha)), r_mod))
+        //     mstore(add(state,state_alpha_square_lagrange), mulmod(mload(add(state,state_alpha_square_lagrange)), mload(add(state, state_alpha)), r_mod))
+
+        //     let computed_quotient := add(s1,0x60)
+
+        //     // linearizedpolynomial + pi(zeta)
+        //     mstore(computed_quotient, addmod(mload(add(proof, proof_linearization_polynomial_at_zeta)), pi, r_mod))
+
+        //     // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)
+        //     mstore(computed_quotient, addmod(mload(computed_quotient), mload(s1), r_mod))
+
+        //     // linearizedpolynomial+pi(zeta)+α*(Z(μζ))*(l(ζ)+s1(ζ)+γ)*(r(ζ)+s2(ζ)+γ)*(o(ζ)+γ)-α²*L₁(ζ)
+        //     mstore(computed_quotient, addmod(mload(computed_quotient), sub(r_mod,mload(add(state, state_alpha_square_lagrange))), r_mod))
+
+        //     // test_quotient := mload(computed_quotient)
+        //     mstore(s2, mulmod(mload(add(proof,proof_quotient_polynomial_at_zeta)), zeta_power_n_minus_one, r_mod))
+
+        //     success := eq(mload(computed_quotient), mload(s2))
+        // }
+    }
+
+  function test_assembly() 
+  public {
+
+    uint256[] memory public_inputs = new uint256[](3);
+    public_inputs[0] = 6;
+    public_inputs[1] = 7;
+    public_inputs[2] = 8;
+    
+    bytes memory proof = get_proof();
+
+    verify_bis(proof, public_inputs);
+
+  }
+
   function verify_bis(bytes memory proof, uint256[] memory public_inputs) 
   internal returns(bool) {
 
-    assembly {
-      let scratch := mload(0x40)
-      mstore(0x40, add(scratch, state_last_mem))
-    }
+    uint256 gamma;
+    uint256 beta;
+    uint256 alpha;
+    uint256 zeta;
+
+    (gamma, beta, alpha, zeta) = derive_gamma_beta_alpha_zeta(proof, public_inputs);
+
+    uint256 pi = compute_pi(proof, public_inputs, zeta);
+
+    emit PrintUint256(pi);
 
     assembly {
 
@@ -469,6 +573,8 @@ contract TestContract {
         mstore(add(buf, 0xa0), r_mod)
         pop(staticcall(gas(),0x05,buf,0xc0,dst,0x20))
       }
+
+      
 
     }
     return true;

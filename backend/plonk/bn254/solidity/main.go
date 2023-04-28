@@ -92,7 +92,7 @@ func getTransactionOpts(privateKey *ecdsa.PrivateKey, auth *bind.TransactOpts, c
 	// auth.GasLimit = uint64(554000) // -> + batch_verify_multi_points lambda derivation assembly
 	// auth.GasLimit = uint64(564000) // -> + add the require for the pairing... +20k
 	// auth.GasLimit = uint64(563000) // -> + add the require for the pairing... +20k
-	auth.GasLimit = uint64(900000) // -> + add the require for the pairing... +20k
+	auth.GasLimit = uint64(1000000) // -> + add the require for the pairing... +20k
 	auth.GasPrice = gasprice
 
 	return auth, nil

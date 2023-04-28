@@ -107,14 +107,7 @@ library Fr {
         mstore(add(mPtr, 0x60), mload(prod_ahead))
         mstore(add(mPtr, 0x80), sub(r, 2))
         mstore(add(mPtr, 0xa0), r)
-        success := staticcall(
-          gas(),
-          0x05,
-          mPtr,
-          0xc0,
-          0x00,
-          0x20
-        )
+        success := staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20)
         let inv := mload(0x00)
 
         let prod_behind := 1
