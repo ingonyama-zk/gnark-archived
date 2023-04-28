@@ -383,8 +383,8 @@ func main() {
 	for _, vLog := range logs {
 
 		var event interface{}
-		err = contractABI.UnpackIntoInterface(&event, "PrintBool", vLog.Data)
-		// err = contractABI.UnpackIntoInterface(&event, "PrintUint256", vLog.Data)
+		// err = contractABI.UnpackIntoInterface(&event, "PrintBool", vLog.Data)
+		err = contractABI.UnpackIntoInterface(&event, "PrintUint256", vLog.Data)
 		// err = contractABI.UnpackIntoInterface(&event, "PrintBytes", vLog.Data)
 		checkError(err)
 		fmt.Println(event)
