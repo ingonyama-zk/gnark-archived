@@ -471,22 +471,22 @@ library PlonkVerifier{
         // digests[1].X = state.linearised_polynomial_x;
         // digests[1].Y = state.linearised_polynomial_y;
         
-        // digests[2].X = proof.l_com_x;
-        // digests[2].Y = proof.l_com_y;
+        digests[2].X = proof.l_com_x;
+        digests[2].Y = proof.l_com_y;
 
-        // digests[3].X = proof.r_com_x;
-        // digests[3].Y = proof.r_com_y;
+        digests[3].X = proof.r_com_x;
+        digests[3].Y = proof.r_com_y;
 
-        // digests[4].X = proof.o_com_x;
-        // digests[4].Y = proof.o_com_y;
+        digests[4].X = proof.o_com_x;
+        digests[4].Y = proof.o_com_y;
         
-        // digests[5].X = vk.s1_com_x;
-        // digests[5].Y = vk.s1_com_y;
-        // digests[6].X = vk.s2_com_x;
-        // digests[6].Y = vk.s2_com_y;
-        // for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){
-        //     Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
-        // }
+        digests[5].X = vk.s1_com_x;
+        digests[5].Y = vk.s1_com_y;
+        digests[6].X = vk.s2_com_x;
+        digests[6].Y = vk.s2_com_y;
+        for (uint i=0; i<vk.selector_commitments_commit_api.length; i++){
+            Bn254.copy_g1(digests[i+7], vk.selector_commitments_commit_api[i]);
+        }
 
         // TODO perhaps we should we inline all this
         Kzg.BatchOpeningProof memory batch_opening_proof;
@@ -504,7 +504,7 @@ library PlonkVerifier{
         for (uint i=0; i<proof.selector_commit_api_at_zeta.length; i++){
             batch_opening_proof.claimed_values[7+i] = proof.selector_commit_api_at_zeta[i];
         }
-
+        
         assembly {
 
             // let bop := batch_opening_proof
@@ -530,8 +530,7 @@ library PlonkVerifier{
             //     bop := add(bop, 0x20)
             //     _proof := add(_proof, 0x20)
             //     mstore(bop, mload(_proof))
-            // }
-
+            // }    
 
             // dst <- dst + [s]src
         //     function point_acc_mul_local(dst,src,s) {
@@ -551,54 +550,61 @@ library PlonkVerifier{
                 value := mload(pointer)
             }
 
-            let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
-            mstore(_digests, mload(add(state, state_folded_h_x)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(state, state_folded_h_y)))
+            // let _digests := add(digests, mul(add(mload(digests),1),0x20)) // TODO modify here mload(0x40)
+            let _digests := add(digests, 0x20)
+            let t := dereference(_digests)
+            mstore(t, mload(add(state, state_folded_h_x)))
+            mstore(add(t,0x20), mload(add(state, state_folded_h_y)))
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(state, state_linearised_polynomial_x)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(state, state_linearised_polynomial_y)))
+            _digests := add(digests, 0x20)
+            t := dereference(_digests)
+            mstore(t, mload(add(state, state_linearised_polynomial_x)))
+            mstore(add(t,0x20), mload(add(state, state_linearised_polynomial_y)))
+            // _digests := add(digests, 0x20)
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, proof_l_commitment)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, add(proof_l_commitment,0x20))))
+            // _digests := add(digests, 0x20)
+            // _digests_i := dereference(_digests)
+            // mstore(_digests_i, mload(add(proof, proof_l_commitment)))
+            // _digests_i := add(_digests_i, 0x20)
+            // mstore(_digests_i, mload(add(proof, add(proof_l_commitment,0x20))))
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, proof_r_commitment)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, add(proof_r_commitment,0x20))))
+            // _digests := add(_digests, 0x20)
+            // _digests_i := dereference(_digests)
+            // mstore(_digests_i, mload(add(proof, proof_r_commitment)))
+            // _digests_i := add(_digests_i, 0x20)
+            // mstore(_digests_i, mload(add(proof, add(proof_r_commitment,0x20))))
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, proof_o_commitment)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(proof, add(proof_o_commitment,0x20))))
+            // _digests := add(_digests, 0x20)
+            // _digests_i := dereference(_digests)
+            // mstore(_digests_i, mload(add(proof, proof_o_commitment)))
+            // _digests_i := add(_digests_i, 0x20)
+            // mstore(_digests_i, mload(add(proof, add(proof_o_commitment,0x20))))
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(vk, vk_s1_com_x)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(vk, vk_s1_com_y)))
+            // _digests := add(_digests, 0x20)
+            // _digests_i := dereference(_digests)
+            // mstore(_digests, mload(add(vk, vk_s1_com_x)))
+            // _digests_i := add(_digests_i, 0x20)
+            // mstore(_digests, mload(add(vk, vk_s1_com_y)))
 
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(vk, vk_s2_com_x)))
-            _digests := add(_digests, 0x20)
-            mstore(_digests, mload(add(vk, vk_s2_com_y)))
-            _digests := add(_digests, 0x20)
+            // _digests := add(_digests, 0x20)
+            // _digests_i := dereference(_digests)
+            // mstore(_digests, mload(add(vk, vk_s2_com_x)))
+            // _digests_i := add(_digests_i, 0x20)
+            // mstore(_digests_i, mload(add(vk, vk_s2_com_y)))
 
-            let api_commit := dereference(add(vk, vk_selector_commitments_commit_api))
-            let nb_commitments := mload(api_commit)
-            api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
-            for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
-            {
-                mstore(_digests, mload(api_commit))
-                _digests := add(_digests, 0x20)
-                api_commit := add(api_commit,0x20)
-                mstore(_digests, mload(api_commit))
-                api_commit := add(api_commit,0x20)
-                _digests := add(_digests, 0x20)
-            }
+            // let api_commit := dereference(add(vk, vk_selector_commitments_commit_api))
+            // let nb_commitments := mload(api_commit)
+            // api_commit := add(api_commit, mul(add(nb_commitments,1),0x20)) 
+            // for {let i:=0} lt(i, nb_commitments) {i:=add(i,1)}
+            // {
+            //     _digests := add(_digests, 0x20)
+            //     _digests_i := dereference(_digests)
+            //     mstore(_digests_i, mload(api_commit))
+            //     _digests_i := add(_digests_i, 0x20)
+            //     api_commit := add(api_commit,0x20)
+            //     mstore(_digests_i, mload(api_commit))
+            //     api_commit := add(api_commit,0x20)
+            // }
         }
 
 
