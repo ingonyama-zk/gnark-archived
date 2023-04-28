@@ -107,39 +107,39 @@ contract TestContract {
   // -------- offset state
 
   // challenges to check the claimed quotient
-  uint256 constant alpha = 0x00;
-  uint256 constant beta = 0x20;
-  uint256 constant gamma = 0x40;
-  uint256 constant zeta = 0x60;
+  uint256 constant state_alpha = 0x00;
+  uint256 constant state_beta = 0x20;
+  uint256 constant state_gamma = 0x40;
+  uint256 constant state_zeta = 0x60;
 
   // challenges related to KZG
-  uint256 constant v = 0x80;
-  uint256 constant u = 0xa0;
+  uint256 constant state_sv = 0x80;
+  uint256 constant state_su = 0xa0;
 
   // reusable value
-  uint256 constant alpha_square_lagrange = 0xc0;
+  uint256 constant state_alpha_square_lagrange = 0xc0;
 
   // commitment to H
   // Bn254.G1Point folded_h;
-  uint256 constant folded_h_x = 0xe0;
-  uint256 constant folded_h_y = 0x100;
+  uint256 constant state_folded_h_x = 0xe0;
+  uint256 constant state_folded_h_y = 0x100;
 
   // commitment to the linearised polynomial
-  uint256 constant linearised_polynomial_x = 0x120;
-  uint256 constant linearised_polynomial_y = 0x140;
+  uint256 constant state_linearised_polynomial_x = 0x120;
+  uint256 constant state_linearised_polynomial_y = 0x140;
 
   // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Kzg.OpeningProof folded_proof;
-  uint256 constant kzg_opening_proof_x = 0x160;
-  uint256 constant kzg_opening_proof_y = 0x180;  
-  uint256 constant claimed_value = 0x1a0;
+  uint256 constant state_kzg_opening_proof_x = 0x160;
+  uint256 constant state_kzg_opening_proof_y = 0x180;  
+  uint256 constant state_claimed_value = 0x1a0;
 
   // folded digests of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Bn254.G1Point folded_digests;
-  uint256 constant folded_digests_x = 0x1c0;
-  uint256 constant folded_digests_y = 0x1e0;
+  uint256 constant state_folded_digests_x = 0x1c0;
+  uint256 constant state_folded_digests_y = 0x1e0;
 
-  uint256 constant last_mem = 0x200;
+  uint256 constant state_last_mem = 0x200;
 
   event PrintBool(bool a);
   event PrintUint256(uint256 a);
@@ -302,59 +302,81 @@ contract TestContract {
     gamma = t.get_challenge();
     
     return gamma;
+  }
+
+  function derive_alpha(bytes memory proof, TranscriptLibrary.Transcript memory t)
+  internal returns(uint256){
+
+    t.set_challenge_name("alpha");
+    uint256 p_grand_product_commitment_x;
+    uint256 p_grand_product_commitment_y;
+
+    assembly{
+      p_grand_product_commitment_x := mload(add(proof, proof_grand_product_commitment_x))
+      p_grand_product_commitment_y := mload(add(proof, proof_grand_product_commitment_y))
+    }
+    t.update_with_u256(p_grand_product_commitment_x);
+    t.update_with_u256(p_grand_product_commitment_y);
+    uint256 alpha = t.get_challenge();
+
+    return alpha;
+  }
+
+  function derive_zeta(bytes memory proof, TranscriptLibrary.Transcript memory t)
+  internal returns(uint256){
+
+    t.set_challenge_name("zeta");
+    uint256 p_h_0_x;
+    uint256 p_h_0_y;
+    uint256 p_h_1_x;
+    uint256 p_h_1_y;
+    uint256 p_h_2_x;
+    uint256 p_h_2_y;
+
+    assembly {
+      p_h_0_x := mload(add(proof, proof_h_0_x))
+      p_h_0_y := mload(add(proof, proof_h_0_y))
+      p_h_1_x := mload(add(proof, proof_h_1_x))
+      p_h_1_y := mload(add(proof, proof_h_1_y))
+      p_h_2_x := mload(add(proof, proof_h_2_x))
+      p_h_2_y := mload(add(proof, proof_h_2_y))
+    }
+    
+    t.update_with_u256(p_h_0_x);
+    t.update_with_u256(p_h_0_y);
+    t.update_with_u256(p_h_1_x);
+    t.update_with_u256(p_h_1_y);
+    t.update_with_u256(p_h_2_x);
+    t.update_with_u256(p_h_2_y);
+
+    uint256 zeta = t.get_challenge();
+
+    return zeta;
 
   }
 
   function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
-  internal returns(uint256) {
+  internal {// returns(uint256, uint256, uint256, uint256) {
 
       TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
       uint256 gamma = derive_gamma(proof, public_inputs, t);
       
-      
-      emit PrintUint256(gamma);
-      // uint256 p_grand_product_commitment_x;
-      // uint256 p_grand_product_commitment_y;
+      t.set_challenge_name("beta");
+      uint256 beta  = t.get_challenge();
 
-      // uint256 p_h_0_x;
-      // uint256 p_h_0_y;
-      // uint256 p_h_1_x;
-      // uint256 p_h_1_y;
-      // uint256 p_h_2_x;
-      // uint256 p_h_2_y;
+      uint256 alpha = derive_alpha(proof, t);
 
-      // assembly{
-      //   p_grand_product_commitment_x := mload(add(proof, proof_grand_product_commitment_x))
-      //   p_grand_product_commitment_y := mload(add(proof, proof_grand_product_commitment_y))
+      uint256 zeta = derive_zeta(proof, t);
 
-      //   p_h_0_x := mload(add(proof, proof_h_0_x))
-      //   p_h_0_y := mload(add(proof, proof_h_0_y))
-      //   p_h_1_x := mload(add(proof, proof_h_1_x))
-      //   p_h_1_y := mload(add(proof, proof_h_1_y))
-      //   p_h_2_x := mload(add(proof, proof_h_2_x))
-      //   p_h_2_y := mload(add(proof, proof_h_2_y))
-      // }
+      assembly {
+        let mem := mload(0x40)
+        mstore(add(mem, state_alpha), alpha)
+        mstore(add(mem, state_beta), beta)
+        mstore(add(mem, state_gamma), gamma)
+        mstore(add(mem, state_zeta), zeta)
+      }
 
-      // t.set_challenge_name("beta");
-      // beta = t.get_challenge();
-
-      // t.set_challenge_name("alpha");
-      // t.update_with_u256(p_grand_product_commitment_x);
-      // t.update_with_u256(p_grand_product_commitment_y);
-      // alpha = t.get_challenge();
-
-      // t.set_challenge_name("zeta");
-      
-      // t.update_with_u256(p_h_0_x);
-      // t.update_with_u256(p_h_0_y);
-      // t.update_with_u256(p_h_1_x);
-      // t.update_with_u256(p_h_1_y);
-      // t.update_with_u256(p_h_2_x);
-      // t.update_with_u256(p_h_2_y);
-
-      // zeta = t.get_challenge();
-
-      return gamma;
+      //return (gamma, beta, alpha, zeta);
   }
 
 
@@ -368,10 +390,22 @@ contract TestContract {
     
     bytes memory proof = get_proof();
 
-    // bool a = verify_bis(proof, public_inputs);
-    // load_wires_commitments_commit_api(proof);
     uint256 gamma;
-    gamma = derive_gamma_beta_alpha_zeta(proof, public_inputs);
+    uint256 beta;
+    uint256 alpha;
+    uint256 zeta;
+    derive_gamma_beta_alpha_zeta(proof, public_inputs);
+    assembly {
+      let mem := mload(0x40)
+      gamma := mload(add(mem, state_gamma))
+      beta := mload(add(mem, state_beta))
+      alpha := mload(add(mem, state_alpha))
+      zeta := mload(add(mem, state_zeta))
+    }
+    emit PrintUint256(gamma);
+    emit PrintUint256(beta);
+    emit PrintUint256(alpha);
+    emit PrintUint256(zeta);
   }
 
   function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
@@ -398,7 +432,7 @@ contract TestContract {
 
     assembly {
       let scratch := mload(0x40)
-      mstore(0x40, add(scratch, last_mem))
+      mstore(0x40, add(scratch, state_last_mem))
     }
 
     assembly {
