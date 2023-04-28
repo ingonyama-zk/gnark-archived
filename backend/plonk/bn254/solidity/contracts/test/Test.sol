@@ -240,10 +240,8 @@ contract TestContract {
     return res;
   }
 
-  function derive_gamma_beta_alpha_zeta(
-
-      bytes memory proof,
-      uint256[] memory public_inputs) internal pure {
+  function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
+  internal {
 
       uint256 gamma;
       uint256 beta;
@@ -275,6 +273,17 @@ contract TestContract {
           t.update_with_u256(public_inputs[i]);
       }
 
+      uint256[] memory wire_committed_commitments;
+      uint256 nb_commit_api;
+      assembly {
+        nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
+      }
+      wire_committed_commitments = new uint256[](2*nb_commit_api);
+      load_wire_commitments_commit_api(wire_committed_commitments, proof);
+      for (uint i=0; i<2*nb_commit_api; i++){
+            t.update_with_u256(wire_committed_commitments[i]); // PI2_i
+        }
+
       uint256 p_l_com_x;
       uint256 p_l_com_y;
       uint256 p_r_com_x;
@@ -285,18 +294,16 @@ contract TestContract {
       uint256 p_grand_product_commitment_x;
       uint256 p_grand_product_commitment_y;
 
-      uint256 nb_commit_api;
+      uint256 proof_h_0_x;
+      uint256 proof_h_0_y;
+      uint256 proof_h_1_x;
+      uint256 proof_h_1_y;
+      uint256 proof_h_2_x;
+      uint256 proof_h_2_y;
+
       assembly {
-        nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
+        
       }
-      // uint256[] memory wire_committed_commitments = new uint256[](2*wire_committed_commitments)
-      // assembly {
-
-      // }
-
-      // for (uint i=0; i<proof.wire_committed_commitments.length; i++){
-      //     t.update_with_g1(proof.wire_committed_commitments[i]); // PI2_i
-      // }
 
       // t.update_with_u256(proof.l_com_x);
       // t.update_with_u256(proof.l_com_y);
@@ -339,37 +346,26 @@ contract TestContract {
     bytes memory proof = get_proof();
 
     // bool a = verify_bis(proof, public_inputs);
-    load_wire_commitments_commit_api(proof);
-    // uint256[] memory w = load_wire_commitments_commit_api(proof);
-    // for (uint i=0; i<w.length; i++){
-    //   emit PrintUint256(w[i]);
-    // }
+    // load_wire_commitments_commit_api(proof);
   }
 
-  function load_wire_commitments_commit_api(bytes memory proof)
+  function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
   internal {
-    uint256 nb_commit_api;
+    uint256 nb_commit_api = wire_commitments.length/2;
     assembly {
-      nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
+      let w := add(wire_commitments, 0x20)
+      let p := add(proof, proof_nb_selector_commit_api_at_zeta)
+      p := add(p, mul(add(nb_commit_api,1), 0x20))
+      for {let i:=0} lt(i, mul(nb_commit_api,2)) {i:=add(i,1)}
+      {
+        mstore(w, mload(p))
+        w := add(w,0x20)
+        p := add(p,0x20)
+        mstore(w, mload(p))
+        w := add(w,0x20)
+        p := add(p,0x20)
+      }
     }
-    emit PrintUint256(nb_commit_api);
-    // emit PrintUint256(nb_commit_api);
-    // uint256[] memory wire_commitments = new uint256[](2*nb_commit_api);
-    // assembly {
-    //   let w := add(wire_commitments, 0x20)
-    //   let p := add(proof, proof_nb_selector_commit_api_at_zeta)
-    //   p := add(p, mul(add(nb_commit_api,1), 0x20))
-    //   for {let i:=0} lt(i, nb_commit_api) {i:=add(i,1)}
-    //   {
-    //     mstore(w, mload(p))
-    //     w := add(w,0x20)
-    //     p := add(p,0x20)
-    //      mstore(w, mload(p))
-    //     w := add(w,0x20)
-    //     p := add(p,0x20)
-    //   }
-    // }
-    // return wire_commitments;
   }
 
   function verify_bis(bytes memory proof, uint256[] memory public_inputs) 
