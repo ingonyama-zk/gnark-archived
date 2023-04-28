@@ -240,98 +240,121 @@ contract TestContract {
     return res;
   }
 
-  function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
-  internal {
+  function derive_gamma(bytes memory proof, uint256[] memory public_inputs, TranscriptLibrary.Transcript memory t)
+  internal returns(uint256) {
 
-      uint256 gamma;
-      uint256 beta;
-      uint256 alpha;
-      uint256 zeta;
+    uint256 gamma;
+    t.set_challenge_name("gamma");
+    
+    t.update_with_u256(vk_s1_com_x);
+    t.update_with_u256(vk_s1_com_y);
+    t.update_with_u256(vk_s2_com_x);
+    t.update_with_u256(vk_s2_com_y);
+    t.update_with_u256(vk_s3_com_x);
+    t.update_with_u256(vk_s3_com_y);
+
+    t.update_with_u256(vk_ql_com_x);
+    t.update_with_u256(vk_ql_com_y);
+    t.update_with_u256(vk_qr_com_x);
+    t.update_with_u256(vk_qr_com_y);
+    t.update_with_u256(vk_qm_com_x);
+    t.update_with_u256(vk_qm_com_y);
+    t.update_with_u256(vk_qo_com_x);
+    t.update_with_u256(vk_qo_com_y);
+    t.update_with_u256(vk_qk_com_x);
+    t.update_with_u256(vk_qk_com_y);
+
+    for (uint256 i = 0; i < public_inputs.length; i++) {
+        t.update_with_u256(public_inputs[i]);
+    }
+
+    uint256[] memory wire_committed_commitments;
+    uint256 nb_commit_api;
+    assembly {
+      nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
+    }
+    wire_committed_commitments = new uint256[](2*nb_commit_api);
+    load_wire_commitments_commit_api(wire_committed_commitments, proof);
+    for (uint i=0; i<2*nb_commit_api; i++){
+      t.update_with_u256(wire_committed_commitments[i]); // PI2_i
+    }
+    uint256 p_l_com_x;
+    uint256 p_l_com_y;
+    uint256 p_r_com_x;
+    uint256 p_r_com_y;
+    uint256 p_o_com_x;
+    uint256 p_o_com_y;
+    assembly {
+      p_l_com_x := mload(add(proof, proof_l_com_x))
+      p_l_com_y := mload(add(proof, proof_l_com_y))
+      p_r_com_x := mload(add(proof, proof_r_com_x))
+      p_r_com_y := mload(add(proof, proof_r_com_y))
+      p_o_com_x := mload(add(proof, proof_o_com_x))
+      p_o_com_y := mload(add(proof, proof_o_com_y))
+    }
+    t.update_with_u256(p_l_com_x);
+    t.update_with_u256(p_l_com_y);
+    t.update_with_u256(p_r_com_x);
+    t.update_with_u256(p_r_com_y);
+    t.update_with_u256(p_o_com_x);
+    t.update_with_u256(p_o_com_y);
+
+    gamma = t.get_challenge();
+    
+    return gamma;
+
+  }
+
+  function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
+  internal returns(uint256) {
 
       TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
-      t.set_challenge_name("gamma");
+      uint256 gamma = derive_gamma(proof, public_inputs, t);
+      
+      
+      emit PrintUint256(gamma);
+      // uint256 p_grand_product_commitment_x;
+      // uint256 p_grand_product_commitment_y;
 
-      t.update_with_u256(vk_s1_com_x);
-      t.update_with_u256(vk_s1_com_y);
-      t.update_with_u256(vk_s2_com_x);
-      t.update_with_u256(vk_s2_com_y);
-      t.update_with_u256(vk_s3_com_x);
-      t.update_with_u256(vk_s3_com_y);
+      // uint256 p_h_0_x;
+      // uint256 p_h_0_y;
+      // uint256 p_h_1_x;
+      // uint256 p_h_1_y;
+      // uint256 p_h_2_x;
+      // uint256 p_h_2_y;
 
-      t.update_with_u256(vk_ql_com_x);
-      t.update_with_u256(vk_ql_com_y);
-      t.update_with_u256(vk_qr_com_x);
-      t.update_with_u256(vk_qr_com_y);
-      t.update_with_u256(vk_qm_com_x);
-      t.update_with_u256(vk_qm_com_y);
-      t.update_with_u256(vk_qo_com_x);
-      t.update_with_u256(vk_qo_com_y);
-      t.update_with_u256(vk_qk_com_x);
-      t.update_with_u256(vk_qk_com_y);
+      // assembly{
+      //   p_grand_product_commitment_x := mload(add(proof, proof_grand_product_commitment_x))
+      //   p_grand_product_commitment_y := mload(add(proof, proof_grand_product_commitment_y))
 
-      for (uint256 i = 0; i < public_inputs.length; i++) {
-          t.update_with_u256(public_inputs[i]);
-      }
-
-      uint256[] memory wire_committed_commitments;
-      uint256 nb_commit_api;
-      assembly {
-        nb_commit_api := mload(add(proof, proof_nb_selector_commit_api_at_zeta))
-      }
-      wire_committed_commitments = new uint256[](2*nb_commit_api);
-      load_wire_commitments_commit_api(wire_committed_commitments, proof);
-      for (uint i=0; i<2*nb_commit_api; i++){
-            t.update_with_u256(wire_committed_commitments[i]); // PI2_i
-        }
-
-      uint256 p_l_com_x;
-      uint256 p_l_com_y;
-      uint256 p_r_com_x;
-      uint256 p_r_com_y;
-      uint256 p_o_com_x;
-      uint256 p_o_com_y;
-
-      uint256 p_grand_product_commitment_x;
-      uint256 p_grand_product_commitment_y;
-
-      uint256 proof_h_0_x;
-      uint256 proof_h_0_y;
-      uint256 proof_h_1_x;
-      uint256 proof_h_1_y;
-      uint256 proof_h_2_x;
-      uint256 proof_h_2_y;
-
-      assembly {
-        
-      }
-
-      // t.update_with_u256(proof.l_com_x);
-      // t.update_with_u256(proof.l_com_y);
-      // t.update_with_u256(proof.r_com_x);
-      // t.update_with_u256(proof.r_com_y);
-      // t.update_with_u256(proof.o_com_x);
-      // t.update_with_u256(proof.o_com_y);
-
-      // state.gamma = t.get_challenge();
+      //   p_h_0_x := mload(add(proof, proof_h_0_x))
+      //   p_h_0_y := mload(add(proof, proof_h_0_y))
+      //   p_h_1_x := mload(add(proof, proof_h_1_x))
+      //   p_h_1_y := mload(add(proof, proof_h_1_y))
+      //   p_h_2_x := mload(add(proof, proof_h_2_x))
+      //   p_h_2_y := mload(add(proof, proof_h_2_y))
+      // }
 
       // t.set_challenge_name("beta");
-      // state.beta = t.get_challenge();
+      // beta = t.get_challenge();
 
       // t.set_challenge_name("alpha");
-      // t.update_with_u256(proof.grand_product_commitment_x);
-      // t.update_with_u256(proof.grand_product_commitment_y);
-      // state.alpha = t.get_challenge();
+      // t.update_with_u256(p_grand_product_commitment_x);
+      // t.update_with_u256(p_grand_product_commitment_y);
+      // alpha = t.get_challenge();
 
       // t.set_challenge_name("zeta");
       
-      // t.update_with_u256(proof.h_0_x);
-      // t.update_with_u256(proof.h_0_y);
-      // t.update_with_u256(proof.h_1_x);
-      // t.update_with_u256(proof.h_1_y);
-      // t.update_with_u256(proof.h_2_x);
-      // t.update_with_u256(proof.h_2_y);
+      // t.update_with_u256(p_h_0_x);
+      // t.update_with_u256(p_h_0_y);
+      // t.update_with_u256(p_h_1_x);
+      // t.update_with_u256(p_h_1_y);
+      // t.update_with_u256(p_h_2_x);
+      // t.update_with_u256(p_h_2_y);
 
-      // state.zeta = t.get_challenge();
+      // zeta = t.get_challenge();
+
+      return gamma;
   }
 
 
@@ -346,7 +369,9 @@ contract TestContract {
     bytes memory proof = get_proof();
 
     // bool a = verify_bis(proof, public_inputs);
-    // load_wire_commitments_commit_api(proof);
+    // load_wires_commitments_commit_api(proof);
+    uint256 gamma;
+    gamma = derive_gamma_beta_alpha_zeta(proof, public_inputs);
   }
 
   function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
