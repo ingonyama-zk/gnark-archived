@@ -434,17 +434,108 @@ contract TestContract {
 
       fold_h(proof)
 
+      compute_commitment_linearised_polynomial(proof)
+
       success := mload(add(mem, state_success))
-      check := mload(add(mem, state_folded_h_y))
+      check := mload(add(mem, state_linearised_polynomial_x))
+
+      function compute_commitment_linearised_polynomial_ec(aproof) {
+
+        let state := mload(0x40)
+        let mPtr := add(mload(0x40), state_last_mem)
+
+        mstore(mPtr, vk_ql_com_x)
+        mstore(add(mPtr,0x20), vk_ql_com_y)
+        point_mul(add(state, state_linearised_polynomial_x), mPtr, mload(add(aproof, proof_l_at_zeta)), add(mPtr,0x40))
+
+        mstore(mPtr, vk_qr_com_x)
+        mstore(add(mPtr,0x20), vk_qr_com_y)
+        point_acc_mul(
+          add(state, state_linearised_polynomial_x),
+          mPtr,
+          mload(add(aproof, proof_r_at_zeta)),
+          add(mPtr,0x40))
+        
+        let rl := mulmod(mload(add(aproof, proof_l_at_zeta)), mload(add(aproof, proof_r_at_zeta)), r_mod)
+        mstore(mPtr, vk_qm_com_x)
+        mstore(add(mPtr,0x20), vk_qm_com_y)
+          point_acc_mul(
+          add(state, state_linearised_polynomial_x),
+          mPtr,
+          rl,
+          add(mPtr,0x40))
+        
+        mstore(mPtr, vk_qo_com_x)
+        mstore(add(mPtr,0x20), vk_qo_com_y)
+        point_acc_mul(
+          add(state, state_linearised_polynomial_x),
+          mPtr,
+          mload(add(aproof, proof_o_at_zeta)),
+          add(mPtr,0x40))
+        
+        mstore(mPtr, vk_qk_com_x)
+        mstore(add(mPtr, 0x20), vk_qk_com_y)
+        point_add(
+          add(state, state_linearised_polynomial_x),
+          add(state, state_linearised_polynomial_x),
+          mPtr,
+          add(mPtr, 0x40)
+        )
+
+      }
+
+      function compute_commitment_linearised_polynomial(aproof) {
+        
+        let state := mload(0x40)
+        let l_beta := mload(add(state, state_beta))
+        let l_gamma := mload(add(state, state_gamma))
+        let l_zeta := mload(add(state, state_zeta))
+        let l_alpha := mload(add(state, state_alpha))
+
+        let u := mulmod(mload(add(aproof,proof_grand_product_at_zeta_omega)), l_beta, r_mod)
+        let v := mulmod(l_beta, mload(add(aproof, proof_s1_at_zeta)), r_mod)
+        v := addmod(v, mload(add(aproof, proof_l_at_zeta)), r_mod)
+        v := addmod(v, l_gamma, r_mod)
+
+        let w := mulmod(l_beta, mload(add(aproof, proof_s2_at_zeta)), r_mod)
+        w := addmod(w, mload(add(aproof, proof_r_at_zeta)), r_mod)
+        w := addmod(w, l_gamma, r_mod)
+
+        let s1 := mulmod(u, v, r_mod)
+        s1 := mulmod(s1, w, r_mod)
+        s1 := mulmod(s1, l_alpha, r_mod)
+
+        let coset_square := mulmod(vk_coset_shift, vk_coset_shift, r_mod)
+        let betazeta := mulmod(l_beta, l_zeta, r_mod)
+        u := addmod(betazeta, mload(add(aproof, proof_l_at_zeta)), r_mod)
+        u := addmod(u, l_gamma, r_mod)
+
+        v := mulmod(betazeta, vk_coset_shift, r_mod)
+        v := addmod(v, mload(add(aproof, proof_r_at_zeta)), r_mod)
+        v := addmod(v, l_gamma, r_mod)
+
+        w := mulmod(betazeta, coset_square, r_mod)
+        w := addmod(w, mload(add(aproof, proof_o_at_zeta)), r_mod)
+        w := addmod(w, l_gamma, r_mod)
+
+        let _s2 := mulmod(u, v, r_mod)
+        _s2 := mulmod(_s2, w, r_mod)
+        _s2 := sub(r_mod, _s2)
+        _s2 := mulmod(_s2, l_alpha, r_mod)
+        _s2 := addmod(_s2, mload(add(state, state_alpha_square_lagrange)), r_mod)
+
+        compute_commitment_linearised_polynomial_ec(aproof)
+      }
 
       function fold_h(aproof) {
         let state := mload(0x40)
         let n_plus_two := add(vk_domain_size, 2)
         let zeta_power_n_plus_two := pow(mload(add(state, state_zeta)), n_plus_two)
-        point_mul(add(state, state_folded_h_x), add(aproof, proof_h_2_x), zeta_power_n_plus_two)
-        point_add(add(state, state_folded_h_x), add(state, state_folded_h_x), add(aproof, proof_h_1_x))
-        point_mul(add(state, state_folded_h_x), add(state, state_folded_h_x), zeta_power_n_plus_two)
-        point_add(add(state, state_folded_h_x), add(state, state_folded_h_x), add(aproof, proof_h_0_x))
+        let mPtr := add(mload(0x40), state_last_mem)
+        point_mul(add(state, state_folded_h_x), add(aproof, proof_h_2_x), zeta_power_n_plus_two, mPtr)
+        point_add(add(state, state_folded_h_x), add(state, state_folded_h_x), add(aproof, proof_h_1_x), mPtr)
+        point_mul(add(state, state_folded_h_x), add(state, state_folded_h_x), zeta_power_n_plus_two, mPtr)
+        point_add(add(state, state_folded_h_x), add(state, state_folded_h_x), add(aproof, proof_h_0_x), mPtr)
       }
 
       function verify_quotient_poly_eval_at_zeta(aproof) {
@@ -486,8 +577,8 @@ contract TestContract {
         mstore(add(state, state_success),eq(mload(computed_quotient), mload(s2)))
       }
 
-      function point_add(dst, p, q) {
-        let mPtr := add(mload(0x40), state_last_mem)
+      function point_add(dst, p, q, mPtr) {
+        // let mPtr := add(mload(0x40), state_last_mem)
         let state := mload(0x40)
         mstore(mPtr, mload(p))
         mstore(add(mPtr, 0x20), mload(add(p, 0x20)))
@@ -498,8 +589,8 @@ contract TestContract {
       }
 
       // dst <- [s]src
-      function point_mul(dst,src,s) {
-        let mPtr := add(mload(0x40), state_last_mem)
+      function point_mul(dst,src,s, mPtr) {
+        // let mPtr := add(mload(0x40), state_last_mem)
         let state := mload(0x40)
         mstore(mPtr,mload(src))
         mstore(add(mPtr,0x20),mload(add(src,0x20)))
@@ -509,15 +600,16 @@ contract TestContract {
       }
 
       // dst <- dst + [s]src
-      function point_acc_mul(dst,src,s) {
-        let buf := mload(0x40)
-        mstore(buf,mload(src))
-        mstore(add(buf,0x20),mload(add(src,0x20)))
-        mstore(add(buf,0x40),mload(s))
-        pop(staticcall(gas(),7,buf,0x60,buf,0x40)) // TODO should we check success here ?
-        mstore(add(buf,0x40),mload(dst))
-        mstore(add(buf,0x60),mload(add(dst,0x20)))
-        pop(staticcall(gas(),6,buf,0x80,dst, 0x40))
+      function point_acc_mul(dst,src,s, mPtr) {
+        let state := mload(0x40)
+        mstore(mPtr,mload(src))
+        mstore(add(mPtr,0x20),mload(add(src,0x20)))
+        mstore(add(mPtr,0x40),s)
+        pop(staticcall(gas(),7,mPtr,0x60,mPtr,0x40)) // TODO should we check success here ?
+        mstore(add(mPtr,0x40),mload(dst))
+        mstore(add(mPtr,0x60),mload(add(dst,0x20)))
+        let l_success := staticcall(gas(),6,mPtr,0x80,dst, 0x40)
+        mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
       }
 
       // dst <- x ** e mod r (x, e are values, not pointers)
@@ -533,7 +625,7 @@ contract TestContract {
         res := mload(buf)
       }
     }
-    
+
     emit PrintUint256(check);
     // emit PrintBool(success);
     return true;
