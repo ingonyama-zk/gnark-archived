@@ -47,15 +47,15 @@ contract TestContract {
 
   uint256 constant vk_coset_shift = 5;
 
-  function get_vk_selector_commitments_commit_api(uint256[] memory v) 
-  internal view {
-    v[0] = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
-    v[1] = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
-  }
+  uint256 constant vk_selector_commitments_commit_api_0_x = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
+  uint256 constant vk_selector_commitments_commit_api_0_y = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
 
-  function get_vk_commitments_indices_commit_api(uint256[] memory v)
+  function load_vk_commitments_indices_commit_api(uint256[] memory v)
   internal view {
-    v[0] = 3;
+    assembly {
+      let _v := add(v, 0x20)
+      mstore(_v, 3)
+    }
   }
 
   uint256 constant vk_g2_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
@@ -138,9 +138,9 @@ contract TestContract {
 
   // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Kzg.OpeningProof folded_proof;
-  uint256 constant state_kzg_opening_proof_x = 0x160;
-  uint256 constant state_kzg_opening_proof_y = 0x180;  
-  uint256 constant state_claimed_value = 0x1a0;
+  uint256 constant state_kzg_folded_opening_proof_x = 0x160;
+  uint256 constant state_kzg_folded_opening_proof_y = 0x180;  
+  uint256 constant state_folded_claimed_value = 0x1a0;
 
   // folded digests of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Bn254.G1Point folded_digests;
@@ -152,11 +152,13 @@ contract TestContract {
   uint256 constant state_zeta_power_n_minus_one = 0x220;
   uint256 constant state_alpha_square_lagrange_one = 0x240;
 
-  uint256 constant state_success = 0x260;
+  uint256 constant state_gamma_kzg = 0x260;
 
-  uint256 constant state_check = 0x280;
+  uint256 constant state_success = 0x280;
+  uint256 constant state_check = 0x2a0;
 
-  uint256 constant state_last_mem = 0x2a0;
+
+  uint256 constant state_last_mem = 0x2c0;
 
   event PrintBool(bool a);
   event PrintUint256(uint256 a);
@@ -355,7 +357,7 @@ contract TestContract {
         uint256 pi = Polynomials.compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
         
         uint256[] memory commitment_indices = new uint256[](vk_nb_commitments_commit_api);
-        get_vk_commitments_indices_commit_api(commitment_indices);
+        load_vk_commitments_indices_commit_api(commitment_indices);
     
         if (vk_nb_commitments_commit_api > 0) {
 
@@ -394,6 +396,17 @@ contract TestContract {
 
     verify_bis(proof, public_inputs);
 
+    // bytes32 a;
+    // uint256 tt;
+    // assembly {
+    //   let buf := mload(0x40)
+    //   mstore(buf, 0x67616d6d61) // "gamma"
+    //   pop(staticcall(gas(), 0x2, add(buf,0x1b), 0x5, buf, 0x20))
+    //   a := mload(buf)
+    //   tt := mod(mload(buf), r_mod)
+    // }
+    // // emit PrintBytes32(a);
+    // emit PrintUint256(tt);
   }
 
   function verify_bis(bytes memory proof, uint256[] memory public_inputs) 
@@ -436,9 +449,49 @@ contract TestContract {
 
       compute_commitment_linearised_polynomial(proof)
 
+      compute_gamma(proof)
+
       success := mload(add(mem, state_success))
-      check := mload(add(mem, state_linearised_polynomial_y))
+      
+      // mstore(add(mem, state_check), mload(add(vk_selector_commitments_commit_api,0x20)))
+      check := mload(add(mem, state_gamma_kzg))
       // check := mload(add(mem, state_check))
+
+      function compute_gamma(aproof) {
+
+        let state := mload(0x40)
+        let mPtr := add(mload(0x40), state_last_mem)
+        mstore(mPtr, 0x67616d6d61) // "gamma"
+        mstore(add(mPtr, 0x20), mload(add(state, state_zeta)))
+        mstore(add(mPtr,0x40), mload(add(state, state_folded_h_x)))
+        mstore(add(mPtr,0x60), mload(add(state, state_folded_h_y)))
+        mstore(add(mPtr,0x80), mload(add(state, state_linearised_polynomial_x)))
+        mstore(add(mPtr,0xa0), mload(add(state, state_linearised_polynomial_y)))
+        mstore(add(mPtr,0xc0), mload(add(aproof, proof_l_com_x)))
+        mstore(add(mPtr,0xe0), mload(add(aproof, proof_l_com_y)))
+        mstore(add(mPtr,0x100), mload(add(aproof, proof_r_com_x)))
+        mstore(add(mPtr,0x120), mload(add(aproof, proof_r_com_y)))
+        mstore(add(mPtr,0x140), mload(add(aproof, proof_o_com_x)))
+        mstore(add(mPtr,0x160), mload(add(aproof, proof_o_com_y)))
+        mstore(add(mPtr,0x180), vk_s1_com_x)
+        mstore(add(mPtr,0x1a0), vk_s1_com_y)
+        mstore(add(mPtr,0x1c0), vk_s2_com_x)
+        mstore(add(mPtr,0x1e0), vk_s2_com_y)
+        
+        // TODO this part needs to be code generated
+        let offset := 0x200
+        mstore(add(mPtr,offset), vk_selector_commitments_commit_api_0_x)
+        mstore(add(mPtr,add(offset, 0x20)), vk_selector_commitments_commit_api_0_y)
+
+        let start_input := 0x1b // 00.."gamma"
+        let size_input := add(0xf, mul(vk_nb_commitments_commit_api,2)) // number of 32bytes elmts = 15 (zeta+2*7 for the digests) + 2*vk_nb_commitments_commit_api
+        size_input := add(0x5, mul(size_input, 0x20)) // size in bytes: 15*32 bytes + 5 bytes for gamma
+        pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, mPtr, 0x20))
+        mstore(add(state, state_gamma_kzg), mod(mload(mPtr), r_mod))
+
+        // pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, mPtr, 0x20))
+        // mstore(add(state, state_gamma_kzg), mod(mload(mPtr), r_mod))
+      }
 
       function compute_commitment_linearised_polynomial_ec(aproof, s1, s2) {
 
