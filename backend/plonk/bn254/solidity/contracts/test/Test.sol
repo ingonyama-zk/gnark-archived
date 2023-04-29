@@ -108,9 +108,9 @@ contract TestContract {
   uint256 constant proof_opening_at_zeta_omega_proof_x = 0x320;
   uint256 constant proof_opening_at_zeta_omega_proof_y = 0x340;
   
-  uint256 constant proof_nb_selector_commit_api_at_zeta = 0x360;
+  uint256 constant proof_openings_commit_api_at_zeta = 0x360;
   // -> next part of proof is 
-  // [nb_selector_commit_api_at_zeta || openings || commitments]
+  // [ openings || commitments]
 
   // -------- offset state
 
@@ -294,8 +294,8 @@ contract TestContract {
   internal {
     assembly {
       let w := add(wire_commitments, 0x20)
-      let p := add(proof, proof_nb_selector_commit_api_at_zeta)
-      p := add(p, mul(add(vk_nb_commitments_commit_api,1), 0x20))
+      let p := add(proof, proof_openings_commit_api_at_zeta)
+      p := add(p, mul(vk_nb_commitments_commit_api, 0x20))
       for {let i:=0} lt(i, mul(vk_nb_commitments_commit_api,2)) {i:=add(i,1)}
       {
         mstore(w, mload(p))
@@ -437,9 +437,10 @@ contract TestContract {
       compute_commitment_linearised_polynomial(proof)
 
       success := mload(add(mem, state_success))
-      check := mload(add(mem, state_linearised_polynomial_x))
+      check := mload(add(mem, state_linearised_polynomial_y))
+      // check := mload(add(mem, state_check))
 
-      function compute_commitment_linearised_polynomial_ec(aproof) {
+      function compute_commitment_linearised_polynomial_ec(aproof, s1, s2) {
 
         let state := mload(0x40)
         let mPtr := add(mload(0x40), state_last_mem)
@@ -450,37 +451,39 @@ contract TestContract {
 
         mstore(mPtr, vk_qr_com_x)
         mstore(add(mPtr,0x20), vk_qr_com_y)
-        point_acc_mul(
-          add(state, state_linearised_polynomial_x),
-          mPtr,
-          mload(add(aproof, proof_r_at_zeta)),
-          add(mPtr,0x40))
+        point_acc_mul(add(state, state_linearised_polynomial_x),mPtr,mload(add(aproof, proof_r_at_zeta)),add(mPtr,0x40))
         
         let rl := mulmod(mload(add(aproof, proof_l_at_zeta)), mload(add(aproof, proof_r_at_zeta)), r_mod)
         mstore(mPtr, vk_qm_com_x)
         mstore(add(mPtr,0x20), vk_qm_com_y)
-          point_acc_mul(
-          add(state, state_linearised_polynomial_x),
-          mPtr,
-          rl,
-          add(mPtr,0x40))
+        point_acc_mul(add(state, state_linearised_polynomial_x),mPtr,rl,add(mPtr,0x40))
         
         mstore(mPtr, vk_qo_com_x)
         mstore(add(mPtr,0x20), vk_qo_com_y)
-        point_acc_mul(
-          add(state, state_linearised_polynomial_x),
-          mPtr,
-          mload(add(aproof, proof_o_at_zeta)),
-          add(mPtr,0x40))
+        point_acc_mul(add(state, state_linearised_polynomial_x),mPtr,mload(add(aproof, proof_o_at_zeta)),add(mPtr,0x40))
         
         mstore(mPtr, vk_qk_com_x)
         mstore(add(mPtr, 0x20), vk_qk_com_y)
-        point_add(
-          add(state, state_linearised_polynomial_x),
-          add(state, state_linearised_polynomial_x),
-          mPtr,
-          add(mPtr, 0x40)
-        )
+        point_add(add(state, state_linearised_polynomial_x),add(state, state_linearised_polynomial_x),mPtr,add(mPtr, 0x40))
+
+        let commits_api_at_zeta := add(aproof, proof_openings_commit_api_at_zeta)
+        let commits_api := add(aproof, add(proof_openings_commit_api_at_zeta, mul(vk_nb_commitments_commit_api, 0x20)))
+        for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
+        {
+          mstore(mPtr, mload(commits_api))
+          mstore(add(mPtr, 0x20), mload(add(commits_api, 0x20)))
+          point_acc_mul(add(state, state_linearised_polynomial_x),mPtr,mload(commits_api_at_zeta),add(mPtr,0x40))
+          commits_api_at_zeta := add(commits_api_at_zeta, 0x20)
+          commits_api := add(commits_api, 0x40)
+        }
+
+        mstore(mPtr, vk_s3_com_x)
+        mstore(add(mPtr, 0x20), vk_s3_com_y)
+        point_acc_mul(add(state, state_linearised_polynomial_x), mPtr, s1, add(mPtr, 0x40))
+
+        mstore(mPtr, mload(add(aproof, proof_grand_product_commitment_x)))
+        mstore(add(mPtr, 0x20), mload(add(aproof, proof_grand_product_commitment_y)))
+        point_acc_mul(add(state, state_linearised_polynomial_x), mPtr, s2, add(mPtr, 0x40))
 
       }
 
@@ -518,13 +521,13 @@ contract TestContract {
         w := addmod(w, mload(add(aproof, proof_o_at_zeta)), r_mod)
         w := addmod(w, l_gamma, r_mod)
 
-        let _s2 := mulmod(u, v, r_mod)
-        _s2 := mulmod(_s2, w, r_mod)
-        _s2 := sub(r_mod, _s2)
-        _s2 := mulmod(_s2, l_alpha, r_mod)
-        _s2 := addmod(_s2, mload(add(state, state_alpha_square_lagrange)), r_mod)
+        let s2 := mulmod(u, v, r_mod)
+        s2 := mulmod(s2, w, r_mod)
+        s2 := sub(r_mod, s2)
+        s2 := mulmod(s2, l_alpha, r_mod)
+        s2 := addmod(s2, mload(add(state, state_alpha_square_lagrange)), r_mod)
 
-        compute_commitment_linearised_polynomial_ec(aproof)
+        compute_commitment_linearised_polynomial_ec(aproof, s1, s2)
       }
 
       function fold_h(aproof) {

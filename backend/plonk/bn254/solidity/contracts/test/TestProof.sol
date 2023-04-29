@@ -89,7 +89,7 @@ library TestProof {
 
         proof.selector_commit_api_at_zeta = new uint256[](1);
         proof.selector_commit_api_at_zeta[0] = 3037506189426785371747045033080583929261182816576630524423545100817866974469;
-        res = abi.encodePacked(res, one, proof.selector_commit_api_at_zeta[0]);
+        res = abi.encodePacked(res, proof.selector_commit_api_at_zeta[0]);
         proof.wire_committed_commitments = new Bn254.G1Point[](1);
         proof.wire_committed_commitments[0].X =  15552480929910802332205434009033658529300932452690724290794850059288694568607;
         proof.wire_committed_commitments[0].Y =  4106131824108708883155969901844611304524714469488967324682353598451772881497;
