@@ -100,17 +100,17 @@ contract TestContract {
   uint256 constant proof_quotient_polynomial_at_zeta = 0x2a0;                    // t(zeta)
   uint256 constant proof_linearization_polynomial_at_zeta = 0x2c0;               // r(zeta)
 
-  //Bn254.G1Point opening_at_zeta_proof;            // [Wzeta]
-  uint256 constant proof_opening_at_zeta_proof_x = 0x2e0;            // [Wzeta]
-  uint256 constant proof_opening_at_zeta_proof_y = 0x300;
+  // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
+  uint256 constant proof_batch_opening_at_zeta_proof_x = 0x2e0;            // [Wzeta]
+  uint256 constant proof_batch_opening_at_zeta_proof_y = 0x300;
 
   //Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
   uint256 constant proof_opening_at_zeta_omega_proof_x = 0x320;
   uint256 constant proof_opening_at_zeta_omega_proof_y = 0x340;
   
-  uint256 constant proof_openings_commit_api_at_zeta = 0x360;
+  uint256 constant proof_openings_selector_commit_api_at_zeta = 0x360;
   // -> next part of proof is 
-  // [ openings || commitments]
+  // [ openings_selector_commits || commitments_wires_commit_api]
 
   // -------- offset state
 
@@ -138,27 +138,25 @@ contract TestContract {
 
   // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Kzg.OpeningProof folded_proof;
-  uint256 constant state_kzg_folded_opening_proof_x = 0x160;
-  uint256 constant state_kzg_folded_opening_proof_y = 0x180;  
-  uint256 constant state_folded_claimed_value = 0x1a0;
+  uint256 constant state_folded_claimed_values = 0x160;
 
   // folded digests of H, linearised poly, l, r, o, s_1, s_2, qcp
   // Bn254.G1Point folded_digests;
-  uint256 constant state_folded_digests_x = 0x1c0;
-  uint256 constant state_folded_digests_y = 0x1e0;
+  uint256 constant state_folded_digests_x = 0x180;
+  uint256 constant state_folded_digests_y = 0x1a0;
 
-  uint256 constant state_pi = 0x200;
+  uint256 constant state_pi = 0x1c0;
 
-  uint256 constant state_zeta_power_n_minus_one = 0x220;
-  uint256 constant state_alpha_square_lagrange_one = 0x240;
+  uint256 constant state_zeta_power_n_minus_one = 0x1e0;
+  uint256 constant state_alpha_square_lagrange_one = 0x200;
 
-  uint256 constant state_gamma_kzg = 0x260;
+  uint256 constant state_gamma_kzg = 0x220;
 
-  uint256 constant state_success = 0x280;
-  uint256 constant state_check = 0x2a0;
+  uint256 constant state_success = 0x240;
+  uint256 constant state_check = 0x260;
 
 
-  uint256 constant state_last_mem = 0x2c0;
+  uint256 constant state_last_mem = 0x280;
 
   event PrintBool(bool a);
   event PrintUint256(uint256 a);
@@ -296,7 +294,7 @@ contract TestContract {
   internal {
     assembly {
       let w := add(wire_commitments, 0x20)
-      let p := add(proof, proof_openings_commit_api_at_zeta)
+      let p := add(proof, proof_openings_selector_commit_api_at_zeta)
       p := add(p, mul(vk_nb_commitments_commit_api, 0x20))
       for {let i:=0} lt(i, mul(vk_nb_commitments_commit_api,2)) {i:=add(i,1)}
       {
@@ -451,11 +449,66 @@ contract TestContract {
 
       compute_gamma(proof)
 
+      fold_state(proof)
+
       success := mload(add(mem, state_success))
       
       // mstore(add(mem, state_check), mload(add(vk_selector_commitments_commit_api,0x20)))
-      check := mload(add(mem, state_gamma_kzg))
-      // check := mload(add(mem, state_check))
+      // check := mload(add(mem, state_folded_digests_x))
+      check := mload(add(mem, state_folded_claimed_values))
+
+      // at this stage the state of mPtr is the same as in compute_gamma
+      function fold_state(aproof) {
+        
+        let state := mload(0x40)
+        let mPtr := add(mload(0x40), state_last_mem)
+
+        let l_gamma_kzg := mload(add(state, state_gamma_kzg))
+        let acc_gamma := l_gamma_kzg
+
+        let offset := add(0x200, mul(vk_nb_commitments_commit_api, 0x40)) // 0x40 = 2*0x20
+        let mPtrOffset := add(mPtr, offset)
+
+        mstore(add(state, state_folded_digests_x), mload(add(mPtr,0x40)))
+        mstore(add(state, state_folded_digests_y), mload(add(mPtr,0x60)))
+        mstore(add(state, state_folded_claimed_values), mload(add(aproof, proof_quotient_polynomial_at_zeta)))
+
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x80), acc_gamma, mPtrOffset)
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_linearization_polynomial_at_zeta), acc_gamma)
+        mstore(add(state, state_check), acc_gamma)
+        
+        acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0xc0), acc_gamma, mPtrOffset)
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_l_at_zeta), acc_gamma)
+        
+        acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x100), acc_gamma, add(mPtr, offset))
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_r_at_zeta), acc_gamma)
+
+        acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x140), acc_gamma, add(mPtr, offset))
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_o_at_zeta), acc_gamma)
+        
+        acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x180), acc_gamma, add(mPtr, offset))
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_s1_at_zeta), acc_gamma)
+        
+        acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+        point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x1c0), acc_gamma, add(mPtr, offset))
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_s2_at_zeta), acc_gamma)
+        
+        let poscaz := add(aproof, proof_openings_selector_commit_api_at_zeta)
+        let opca := add(mPtr, 0x200) // offset_proof_commits_api
+        for {let i := 0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
+        {
+          acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
+          point_acc_mul(add(state, state_folded_digests_x), opca, acc_gamma, add(mPtr, offset))
+          fr_acc_mul(add(state, state_folded_claimed_values), poscaz, acc_gamma)
+          poscaz := add(poscaz, 0x20)
+          opca := add(opca, 0x40)
+        }
+
+      }
 
       function compute_gamma(aproof) {
 
@@ -486,11 +539,9 @@ contract TestContract {
         let start_input := 0x1b // 00.."gamma"
         let size_input := add(0xf, mul(vk_nb_commitments_commit_api,2)) // number of 32bytes elmts = 15 (zeta+2*7 for the digests) + 2*vk_nb_commitments_commit_api
         size_input := add(0x5, mul(size_input, 0x20)) // size in bytes: 15*32 bytes + 5 bytes for gamma
-        pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, mPtr, 0x20))
-        mstore(add(state, state_gamma_kzg), mod(mload(mPtr), r_mod))
+        pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, add(state, state_gamma_kzg), 0x20))
+        mstore(add(state, state_gamma_kzg), mod(mload(add(state, state_gamma_kzg)), r_mod))
 
-        // pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, mPtr, 0x20))
-        // mstore(add(state, state_gamma_kzg), mod(mload(mPtr), r_mod))
       }
 
       function compute_commitment_linearised_polynomial_ec(aproof, s1, s2) {
@@ -519,8 +570,8 @@ contract TestContract {
         mstore(add(mPtr, 0x20), vk_qk_com_y)
         point_add(add(state, state_linearised_polynomial_x),add(state, state_linearised_polynomial_x),mPtr,add(mPtr, 0x40))
 
-        let commits_api_at_zeta := add(aproof, proof_openings_commit_api_at_zeta)
-        let commits_api := add(aproof, add(proof_openings_commit_api_at_zeta, mul(vk_nb_commitments_commit_api, 0x20)))
+        let commits_api_at_zeta := add(aproof, proof_openings_selector_commit_api_at_zeta)
+        let commits_api := add(aproof, add(proof_openings_selector_commit_api_at_zeta, mul(vk_nb_commitments_commit_api, 0x20)))
         for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
         {
           mstore(mPtr, mload(commits_api))
@@ -655,7 +706,7 @@ contract TestContract {
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
       }
 
-      // dst <- dst + [s]src
+      // dst <- dst + [s]src (Elliptic curve)
       function point_acc_mul(dst,src,s, mPtr) {
         let state := mload(0x40)
         mstore(mPtr,mload(src))
@@ -666,6 +717,12 @@ contract TestContract {
         mstore(add(mPtr,0x60),mload(add(dst,0x20)))
         let l_success := staticcall(gas(),6,mPtr,0x80,dst, 0x40)
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
+      }
+
+      // dst <- dst + src (Fr) dst,src are addresses, s is a value
+      function fr_acc_mul(dst, src, s) {
+        let tmp :=  mulmod(mload(src), s, r_mod)
+        mstore(dst, addmod(mload(dst), tmp, r_mod))
       }
 
       // dst <- x ** e mod r (x, e are values, not pointers)
