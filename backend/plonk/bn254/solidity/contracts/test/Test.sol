@@ -167,60 +167,85 @@ contract TestContract {
   internal returns(uint256) {
 
     uint256 gamma;
-    t.set_challenge_name("gamma");
-    
-    t.update_with_u256(vk_s1_com_x);
-    t.update_with_u256(vk_s1_com_y);
-    t.update_with_u256(vk_s2_com_x);
-    t.update_with_u256(vk_s2_com_y);
-    t.update_with_u256(vk_s3_com_x);
-    t.update_with_u256(vk_s3_com_y);
+    uint256 beta;
+    uint256 alpha;
 
-    t.update_with_u256(vk_ql_com_x);
-    t.update_with_u256(vk_ql_com_y);
-    t.update_with_u256(vk_qr_com_x);
-    t.update_with_u256(vk_qr_com_y);
-    t.update_with_u256(vk_qm_com_x);
-    t.update_with_u256(vk_qm_com_y);
-    t.update_with_u256(vk_qo_com_x);
-    t.update_with_u256(vk_qo_com_y);
-    t.update_with_u256(vk_qk_com_x);
-    t.update_with_u256(vk_qk_com_y);
-
-    for (uint256 i = 0; i < public_inputs.length; i++) {
-        t.update_with_u256(public_inputs[i]);
-    }
-
-    uint256[] memory wire_committed_commitments;
-    wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
-    load_wire_commitments_commit_api(wire_committed_commitments, proof);
-    for (uint i=0; i<2*vk_nb_commitments_commit_api; i++){
-      t.update_with_u256(wire_committed_commitments[i]); // PI2_i
-    }
-    uint256 p_l_com_x;
-    uint256 p_l_com_y;
-    uint256 p_r_com_x;
-    uint256 p_r_com_y;
-    uint256 p_o_com_x;
-    uint256 p_o_com_y;
     assembly {
-      p_l_com_x := mload(add(proof, proof_l_com_x))
-      p_l_com_y := mload(add(proof, proof_l_com_y))
-      p_r_com_x := mload(add(proof, proof_r_com_x))
-      p_r_com_y := mload(add(proof, proof_r_com_y))
-      p_o_com_x := mload(add(proof, proof_o_com_x))
-      p_o_com_y := mload(add(proof, proof_o_com_y))
-    }
-    t.update_with_u256(p_l_com_x);
-    t.update_with_u256(p_l_com_y);
-    t.update_with_u256(p_r_com_x);
-    t.update_with_u256(p_r_com_y);
-    t.update_with_u256(p_o_com_x);
-    t.update_with_u256(p_o_com_y);
+      let mPtr := mload(0x40)
 
-    gamma = t.get_challenge();
-    
+      // gamma
+      mstore(mPtr, 0x67616d6d61) // "gamma"
+
+      mstore(add(mPtr, 0x20), vk_s1_com_x)
+      mstore(add(mPtr, 0x40), vk_s1_com_y)
+      mstore(add(mPtr, 0x60), vk_s2_com_x)
+      mstore(add(mPtr, 0x80), vk_s2_com_y)
+      mstore(add(mPtr, 0xa0), vk_s3_com_x)
+      mstore(add(mPtr, 0xc0), vk_s3_com_y)
+      mstore(add(mPtr, 0xe0), vk_ql_com_x)
+      mstore(add(mPtr, 0x100), vk_ql_com_y)
+      mstore(add(mPtr, 0x120), vk_qr_com_x)
+      mstore(add(mPtr, 0x140), vk_qr_com_y)
+      mstore(add(mPtr, 0x160), vk_qm_com_x)
+      mstore(add(mPtr, 0x180), vk_qm_com_y)
+      mstore(add(mPtr, 0x1a0), vk_qo_com_x)
+      mstore(add(mPtr, 0x1c0), vk_qo_com_y)
+      mstore(add(mPtr, 0x1e0), vk_qk_com_x)
+      mstore(add(mPtr, 0x200), vk_qk_com_y)
+
+      let pi := add(public_inputs, 0x20)
+      let _mPtr := add(mPtr, 0x220)
+      for {let i:=0} lt(i, mload(public_inputs)) {i:=add(i,1)}
+      {
+        mstore(_mPtr, mload(pi))
+        pi := add(pi, 0x20)
+        _mPtr := add(_mPtr, 0x20)
+      }
+
+      let _proof := add(proof, proof_openings_selector_commit_api_at_zeta)
+      _proof := add(_proof, mul(vk_nb_commitments_commit_api, 0x20))
+      for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
+      {
+        mstore(_mPtr, mload(_proof))
+        mstore(add(_mPtr, 0x20), mload(add(_proof, 0x20)))
+        _mPtr := add(_mPtr, 0x40)
+        _proof := add(_proof, 0x40)
+      }
+
+      mstore(_mPtr, mload(add(proof, proof_l_com_x)))
+      mstore(add(_mPtr, 0x20), mload(add(proof, proof_l_com_y)))
+      mstore(add(_mPtr, 0x40), mload(add(proof, proof_r_com_x)))
+      mstore(add(_mPtr, 0x60), mload(add(proof, proof_r_com_y)))
+      mstore(add(_mPtr, 0x80), mload(add(proof, proof_o_com_x)))
+      mstore(add(_mPtr, 0xa0), mload(add(proof, proof_o_com_y)))
+
+      let size := add(0x2c5, mul(mload(public_inputs), 0x20)) // 0x2c5 = 22*32+5
+      size := add(size, mul(vk_nb_commitments_commit_api, 0x40))
+      pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), size, mPtr, 0x20)) //0x1b -> 000.."gamma"
+      gamma := mod(mload(mPtr), r_mod)
+      let prev_challenge := mload(mPtr) // the previous challenge is not reduced
+
+      // beta
+      mstore(mPtr, 0x62657461) // "beta"
+      mstore(add(mPtr, 0x20), prev_challenge)
+      pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0x24, mPtr, 0x20)) //0x1b -> 000.."gamma"
+      beta := mod(mload(mPtr), r_mod)
+      prev_challenge := mload(mPtr)
+
+      // alpha
+      mstore(mPtr, 0x616C706861) // "alpha"
+      mstore(add(mPtr, 0x20), prev_challenge)
+      mstore(add(mPtr, 0x40), mload(add(proof, proof_grand_product_commitment_x)))
+      mstore(add(mPtr, 0x60), mload(add(proof, proof_grand_product_commitment_y)))
+      pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), 0x65, mPtr, 0x20)) //0x1b -> 000.."gamma"
+      alpha := mod(mload(mPtr), r_mod)
+      prev_challenge := mload(mPtr)
+
+    }
+    emit PrintUint256(alpha);
+
     return gamma;
+
   }
 
   function derive_alpha(bytes memory proof, TranscriptLibrary.Transcript memory t)
@@ -739,7 +764,7 @@ contract TestContract {
       }
     }
 
-    emit PrintUint256(check);
+    // emit PrintUint256(check);
     // emit PrintBool(success);
     return true;
 
