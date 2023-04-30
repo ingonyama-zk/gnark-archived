@@ -163,156 +163,124 @@ contract TestContract {
   event PrintBytes(bytes a);
   event PrintBytes32(bytes32 a);
 
-  function derive_gamma(bytes memory proof, uint256[] memory public_inputs, TranscriptLibrary.Transcript memory t)
-  internal returns(uint256) {
+  function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
+  internal returns(uint256, uint256, uint256, uint256) {
 
     uint256 gamma;
     uint256 beta;
     uint256 alpha;
+    uint256 zeta;
 
     assembly {
-      let mPtr := mload(0x40)
 
-      // gamma
-      mstore(mPtr, 0x67616d6d61) // "gamma"
+      let mem := mload(0x40)
 
-      mstore(add(mPtr, 0x20), vk_s1_com_x)
-      mstore(add(mPtr, 0x40), vk_s1_com_y)
-      mstore(add(mPtr, 0x60), vk_s2_com_x)
-      mstore(add(mPtr, 0x80), vk_s2_com_y)
-      mstore(add(mPtr, 0xa0), vk_s3_com_x)
-      mstore(add(mPtr, 0xc0), vk_s3_com_y)
-      mstore(add(mPtr, 0xe0), vk_ql_com_x)
-      mstore(add(mPtr, 0x100), vk_ql_com_y)
-      mstore(add(mPtr, 0x120), vk_qr_com_x)
-      mstore(add(mPtr, 0x140), vk_qr_com_y)
-      mstore(add(mPtr, 0x160), vk_qm_com_x)
-      mstore(add(mPtr, 0x180), vk_qm_com_y)
-      mstore(add(mPtr, 0x1a0), vk_qo_com_x)
-      mstore(add(mPtr, 0x1c0), vk_qo_com_y)
-      mstore(add(mPtr, 0x1e0), vk_qk_com_x)
-      mstore(add(mPtr, 0x200), vk_qk_com_y)
+      derive_gamma(proof, public_inputs)
+      gamma := mload(mem)
 
-      let pi := add(public_inputs, 0x20)
-      let _mPtr := add(mPtr, 0x220)
-      for {let i:=0} lt(i, mload(public_inputs)) {i:=add(i,1)}
-      {
-        mstore(_mPtr, mload(pi))
-        pi := add(pi, 0x20)
-        _mPtr := add(_mPtr, 0x20)
+      derive_beta(proof, gamma)
+      beta := mload(mem)
+
+      derive_alpha(proof, beta)
+      alpha := mload(mem)
+
+      derive_zeta(proof, alpha)
+      zeta := mload(mem)
+
+      gamma := mod(gamma, r_mod)
+      beta := mod(beta, r_mod)
+      alpha := mod(alpha, r_mod)
+      zeta := mod(zeta, r_mod)
+
+      function derive_gamma(aproof, pub_inputs) {
+        
+        let mPtr := mload(0x40)
+
+        // gamma
+        mstore(mPtr, 0x67616d6d61) // "gamma"
+
+        mstore(add(mPtr, 0x20), vk_s1_com_x)
+        mstore(add(mPtr, 0x40), vk_s1_com_y)
+        mstore(add(mPtr, 0x60), vk_s2_com_x)
+        mstore(add(mPtr, 0x80), vk_s2_com_y)
+        mstore(add(mPtr, 0xa0), vk_s3_com_x)
+        mstore(add(mPtr, 0xc0), vk_s3_com_y)
+        mstore(add(mPtr, 0xe0), vk_ql_com_x)
+        mstore(add(mPtr, 0x100), vk_ql_com_y)
+        mstore(add(mPtr, 0x120), vk_qr_com_x)
+        mstore(add(mPtr, 0x140), vk_qr_com_y)
+        mstore(add(mPtr, 0x160), vk_qm_com_x)
+        mstore(add(mPtr, 0x180), vk_qm_com_y)
+        mstore(add(mPtr, 0x1a0), vk_qo_com_x)
+        mstore(add(mPtr, 0x1c0), vk_qo_com_y)
+        mstore(add(mPtr, 0x1e0), vk_qk_com_x)
+        mstore(add(mPtr, 0x200), vk_qk_com_y)
+
+        let pi := add(pub_inputs, 0x20)
+        let _mPtr := add(mPtr, 0x220)
+        for {let i:=0} lt(i, mload(pub_inputs)) {i:=add(i,1)}
+        {
+          mstore(_mPtr, mload(pi))
+          pi := add(pi, 0x20)
+          _mPtr := add(_mPtr, 0x20)
+        }
+
+        let _proof := add(aproof, proof_openings_selector_commit_api_at_zeta)
+        _proof := add(_proof, mul(vk_nb_commitments_commit_api, 0x20))
+        for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
+        {
+          mstore(_mPtr, mload(_proof))
+          mstore(add(_mPtr, 0x20), mload(add(_proof, 0x20)))
+          _mPtr := add(_mPtr, 0x40)
+          _proof := add(_proof, 0x40)
+        }
+
+        mstore(_mPtr, mload(add(aproof, proof_l_com_x)))
+        mstore(add(_mPtr, 0x20), mload(add(aproof, proof_l_com_y)))
+        mstore(add(_mPtr, 0x40), mload(add(aproof, proof_r_com_x)))
+        mstore(add(_mPtr, 0x60), mload(add(aproof, proof_r_com_y)))
+        mstore(add(_mPtr, 0x80), mload(add(aproof, proof_o_com_x)))
+        mstore(add(_mPtr, 0xa0), mload(add(aproof, proof_o_com_y)))
+
+        let size := add(0x2c5, mul(mload(pub_inputs), 0x20)) // 0x2c5 = 22*32+5
+        size := add(size, mul(vk_nb_commitments_commit_api, 0x40))
+        pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), size, mPtr, 0x20)) //0x1b -> 000.."gamma"
       }
 
-      let _proof := add(proof, proof_openings_selector_commit_api_at_zeta)
-      _proof := add(_proof, mul(vk_nb_commitments_commit_api, 0x20))
-      for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
-      {
-        mstore(_mPtr, mload(_proof))
-        mstore(add(_mPtr, 0x20), mload(add(_proof, 0x20)))
-        _mPtr := add(_mPtr, 0x40)
-        _proof := add(_proof, 0x40)
+      function derive_beta(aproof, prev_challenge){
+        let mPtr := mload(0x40)
+        // beta
+        mstore(mPtr, 0x62657461) // "beta"
+        mstore(add(mPtr, 0x20), prev_challenge)
+        pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0x24, mPtr, 0x20)) //0x1b -> 000.."gamma"
       }
 
-      mstore(_mPtr, mload(add(proof, proof_l_com_x)))
-      mstore(add(_mPtr, 0x20), mload(add(proof, proof_l_com_y)))
-      mstore(add(_mPtr, 0x40), mload(add(proof, proof_r_com_x)))
-      mstore(add(_mPtr, 0x60), mload(add(proof, proof_r_com_y)))
-      mstore(add(_mPtr, 0x80), mload(add(proof, proof_o_com_x)))
-      mstore(add(_mPtr, 0xa0), mload(add(proof, proof_o_com_y)))
+      function derive_alpha(aproof, prev_challenge){
+        let mPtr := mload(0x40)
+        // alpha
+        mstore(mPtr, 0x616C706861) // "alpha"
+        mstore(add(mPtr, 0x20), prev_challenge)
+        mstore(add(mPtr, 0x40), mload(add(aproof, proof_grand_product_commitment_x)))
+        mstore(add(mPtr, 0x60), mload(add(aproof, proof_grand_product_commitment_y)))
+        pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), 0x65, mPtr, 0x20)) //0x1b -> 000.."gamma"
+      }
 
-      let size := add(0x2c5, mul(mload(public_inputs), 0x20)) // 0x2c5 = 22*32+5
-      size := add(size, mul(vk_nb_commitments_commit_api, 0x40))
-      pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), size, mPtr, 0x20)) //0x1b -> 000.."gamma"
-      gamma := mod(mload(mPtr), r_mod)
-      let prev_challenge := mload(mPtr) // the previous challenge is not reduced
-
-      // beta
-      mstore(mPtr, 0x62657461) // "beta"
-      mstore(add(mPtr, 0x20), prev_challenge)
-      pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0x24, mPtr, 0x20)) //0x1b -> 000.."gamma"
-      beta := mod(mload(mPtr), r_mod)
-      prev_challenge := mload(mPtr)
-
-      // alpha
-      mstore(mPtr, 0x616C706861) // "alpha"
-      mstore(add(mPtr, 0x20), prev_challenge)
-      mstore(add(mPtr, 0x40), mload(add(proof, proof_grand_product_commitment_x)))
-      mstore(add(mPtr, 0x60), mload(add(proof, proof_grand_product_commitment_y)))
-      pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), 0x65, mPtr, 0x20)) //0x1b -> 000.."gamma"
-      alpha := mod(mload(mPtr), r_mod)
-      prev_challenge := mload(mPtr)
-
+      function derive_zeta(aproof, prev_challenge) {
+        let mPtr := mload(0x40)
+        // zeta
+        mstore(mPtr, 0x7a657461) // "zeta"
+        mstore(add(mPtr, 0x20), prev_challenge)
+        mstore(add(mPtr, 0x40), mload(add(aproof, proof_h_0_x)))
+        mstore(add(mPtr, 0x60), mload(add(aproof, proof_h_0_y)))
+        mstore(add(mPtr, 0x80), mload(add(aproof, proof_h_1_x)))
+        mstore(add(mPtr, 0xa0), mload(add(aproof, proof_h_1_y)))
+        mstore(add(mPtr, 0xc0), mload(add(aproof, proof_h_2_x)))
+        mstore(add(mPtr, 0xe0), mload(add(aproof, proof_h_2_y)))
+        pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0xe4, mPtr, 0x20))
+      }
     }
-    emit PrintUint256(alpha);
 
-    return gamma;
-
-  }
-
-  function derive_alpha(bytes memory proof, TranscriptLibrary.Transcript memory t)
-  internal returns(uint256){
-
-    t.set_challenge_name("alpha");
-    uint256 p_grand_product_commitment_x;
-    uint256 p_grand_product_commitment_y;
-
-    assembly{
-      p_grand_product_commitment_x := mload(add(proof, proof_grand_product_commitment_x))
-      p_grand_product_commitment_y := mload(add(proof, proof_grand_product_commitment_y))
-    }
-    t.update_with_u256(p_grand_product_commitment_x);
-    t.update_with_u256(p_grand_product_commitment_y);
-    uint256 alpha = t.get_challenge();
-
-    return alpha;
-  }
-
-  function derive_zeta(bytes memory proof, TranscriptLibrary.Transcript memory t)
-  internal returns(uint256){
-
-    t.set_challenge_name("zeta");
-    uint256 p_h_0_x;
-    uint256 p_h_0_y;
-    uint256 p_h_1_x;
-    uint256 p_h_1_y;
-    uint256 p_h_2_x;
-    uint256 p_h_2_y;
-
-    assembly {
-      p_h_0_x := mload(add(proof, proof_h_0_x))
-      p_h_0_y := mload(add(proof, proof_h_0_y))
-      p_h_1_x := mload(add(proof, proof_h_1_x))
-      p_h_1_y := mload(add(proof, proof_h_1_y))
-      p_h_2_x := mload(add(proof, proof_h_2_x))
-      p_h_2_y := mload(add(proof, proof_h_2_y))
-    }
-    
-    t.update_with_u256(p_h_0_x);
-    t.update_with_u256(p_h_0_y);
-    t.update_with_u256(p_h_1_x);
-    t.update_with_u256(p_h_1_y);
-    t.update_with_u256(p_h_2_x);
-    t.update_with_u256(p_h_2_y);
-
-    uint256 zeta = t.get_challenge();
-
-    return zeta;
-
-  }
-
-  function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
-  internal returns(uint256, uint256, uint256, uint256) {
-
-      TranscriptLibrary.Transcript memory t = TranscriptLibrary.new_transcript();
-      uint256 gamma = derive_gamma(proof, public_inputs, t);
-      
-      t.set_challenge_name("beta");
-      uint256 beta  = t.get_challenge();
-
-      uint256 alpha = derive_alpha(proof, t);
-
-      uint256 zeta = derive_zeta(proof, t);
-
-      return (gamma, beta, alpha, zeta);
+    return (gamma, beta, alpha, zeta);
   }
 
   function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
@@ -441,6 +409,10 @@ contract TestContract {
     uint256 zeta;
 
     (gamma, beta, alpha, zeta) = derive_gamma_beta_alpha_zeta(proof, public_inputs);
+    emit PrintUint256(gamma);
+    emit PrintUint256(beta);
+    emit PrintUint256(alpha);
+    emit PrintUint256(zeta);
 
     uint256 pi = compute_pi(proof, public_inputs, zeta);
      
@@ -479,7 +451,7 @@ contract TestContract {
       success := mload(add(mem, state_success))
       
       // mstore(add(mem, state_check), mload(add(vk_selector_commitments_commit_api,0x20)))
-      // check := mload(add(mem, state_folded_digests_x))
+
       check := mload(add(mem, state_folded_claimed_values))
 
       // at this stage the state of mPtr is the same as in compute_gamma
