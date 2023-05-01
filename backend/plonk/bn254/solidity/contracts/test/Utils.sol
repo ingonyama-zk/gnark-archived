@@ -165,7 +165,7 @@ library Utils {
         uint256 r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
         uint256 zeta_power_n_minus_one;
-        uint256 l_domain_size := domain_size;
+        uint256 l_domain_size = domain_size;
 
         assembly {
 
@@ -186,7 +186,7 @@ library Utils {
         }
 
         // compute PI = ∑_{i<n} Lᵢ*wᵢ
-        uint256 pi = Polynomials.compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
+        uint256 pi = compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
         
         uint256[] memory commitment_indices = new uint256[](vk_nb_commitments_commit_api);
         load_vk_commitments_indices_commit_api(commitment_indices);

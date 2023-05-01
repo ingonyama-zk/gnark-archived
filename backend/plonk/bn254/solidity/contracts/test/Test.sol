@@ -1,23 +1,23 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import {PlonkVerifier} from '../Verifier.sol';
-import {Types} from '../crypto/Types.sol';
-import {TranscriptLibrary} from '../crypto/Transcript.sol';
-import {Bn254} from '../crypto/Bn254.sol';
+// import {PlonkVerifier} from '../Verifier.sol';
+// import {Types} from '../crypto/Types.sol';
+// import {TranscriptLibrary} from '../crypto/Transcript.sol';
+// import {Bn254} from '../crypto/Bn254.sol';
 import {UtilsFr} from '../crypto/HashFr.sol';
 import {Polynomials} from '../crypto/Polynomials.sol';
-import {Fr} from '../crypto/Fr.sol';
+// import {Fr} from '../crypto/Fr.sol';
 import {TestProof} from './TestProof.sol';
 
 contract TestContract {
 
   using Polynomials for *;
-  using PlonkVerifier for *;
-  using Types for *;
-  using TranscriptLibrary for *;
-  using Fr for *;
-  using Bn254 for *;
+  // using PlonkVerifier for *;
+  // using Types for *;
+  // using TranscriptLibrary for *;
+  // using Fr for *;
+  // using Bn254 for *;
   using UtilsFr for *;
   using TestProof for *;
 
@@ -311,7 +311,6 @@ contract TestContract {
   internal returns (uint256) {
 
     uint256 res;
-    uint256 t;
     assembly {
 
       // _n^_i [r]
@@ -347,8 +346,26 @@ contract TestContract {
     ) internal returns (uint256) {
 
         // evaluation of Z=Xⁿ⁻¹ at ζ
-        uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
-        zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
+        // uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
+        // zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
+        uint256 zeta_power_n_minus_one;
+
+        assembly {
+          // _n^_i [r]
+          function pow_local(x, e)->result {
+            let mPtr := mload(0x40)
+            mstore(mPtr, 0x20)
+            mstore(add(mPtr, 0x20), 0x20)
+            mstore(add(mPtr, 0x40), 0x20)
+            mstore(add(mPtr, 0x60), x)
+            mstore(add(mPtr, 0x80), e)
+            mstore(add(mPtr, 0xa0), r_mod)
+            pop(staticcall(sub(gas(), 2000),0x05,mPtr,0xc0,0x00,0x20))
+            result := mload(0x00)
+          }
+          zeta_power_n_minus_one := pow_local(zeta, vk_domain_size)
+          zeta_power_n_minus_one := addmod(zeta_power_n_minus_one, sub(r_mod, 1), r_mod)
+        }
 
         // compute PI = ∑_{i<n} Lᵢ*wᵢ
         uint256 pi = Polynomials.compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
@@ -390,17 +407,6 @@ contract TestContract {
 
     verify_bis(proof, public_inputs);
 
-    // bytes32 a;
-    // uint256 tt;
-    // assembly {
-    //   let buf := mload(0x40)
-    //   mstore(buf, 0x67616d6d61) // "gamma"
-    //   pop(staticcall(sub(gas(), 2000), 0x2, add(buf,0x1b), 0x5, buf, 0x20))
-    //   a := mload(buf)
-    //   tt := mod(mload(buf), r_mod)
-    // }
-    // // emit PrintBytes32(a);
-    // emit PrintUint256(tt);
   }
 
   function verify_bis(bytes memory proof, uint256[] memory public_inputs) 
@@ -428,7 +434,6 @@ contract TestContract {
       mstore(add(mem, state_zeta), zeta)
       mstore(add(mem, state_beta), beta)
       mstore(add(mem, state_pi), pi)
-      mstore(add(mem, state_zeta_power_n_minus_one), zeta_power_n_minus_one)
 
       compute_alpha_square_lagrange()
       verify_quotient_poly_eval_at_zeta(proof)
@@ -440,9 +445,7 @@ contract TestContract {
 
       success := mload(add(mem, state_success))
       
-      // mstore(add(mem, state_check_pairing), mload(add(vk_selector_commitments_commit_api,0x20)))
-
-      check := mload(add(mem, state_alpha_square_lagrange))
+      check := mload(add(mem,state_check_pairing))
 
       function compute_alpha_square_lagrange() {   
         let state := mload(0x40)
@@ -506,7 +509,7 @@ contract TestContract {
 
         let folded_quotients_y := add(folded_quotients, 0x20)
         mstore(folded_quotients_y, sub(p_mod, mload(folded_quotients_y)))
-        mstore(add(state, state_check_pairing), mload(folded_quotients))
+        mstore(add(state, state_check_pairing), mload(add(folded_digests, 0x20)))
 
         mstore(mPtr, mload(folded_digests))
         mstore(add(mPtr, 0x20), mload(add(folded_digests, 0x20)))
