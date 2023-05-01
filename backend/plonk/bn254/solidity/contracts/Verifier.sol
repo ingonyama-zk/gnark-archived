@@ -481,7 +481,7 @@ library PlonkVerifier {
 
         let folded_quotients_y := add(folded_quotients, 0x20)
         mstore(folded_quotients_y, sub(p_mod, mload(folded_quotients_y)))
-        mstore(add(state, state_check_pairing), mload(add(folded_quotients, 0x20)))
+        mstore(add(state, state_check_pairing), mload(folded_digests))
 
         mstore(mPtr, mload(folded_digests))
         mstore(add(mPtr, 0x20), mload(add(folded_digests, 0x20)))
