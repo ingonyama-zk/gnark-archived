@@ -414,13 +414,6 @@ contract TestContract {
     (gamma, beta, alpha, zeta) = derive_gamma_beta_alpha_zeta(proof, public_inputs);
 
     uint256 pi = compute_pi(proof, public_inputs, zeta);
-     
-    uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
-    zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
-
-    uint256 alpha_square_lagrange = compute_ith_lagrange_at_z(zeta, 0);
-    alpha_square_lagrange = Fr.mul(alpha_square_lagrange, alpha);
-    alpha_square_lagrange = Fr.mul(alpha_square_lagrange, alpha);
 
     uint256 check;
 
@@ -435,26 +428,42 @@ contract TestContract {
       mstore(add(mem, state_zeta), zeta)
       mstore(add(mem, state_beta), beta)
       mstore(add(mem, state_pi), pi)
-      mstore(add(mem, state_alpha_square_lagrange), alpha_square_lagrange)
       mstore(add(mem, state_zeta_power_n_minus_one), zeta_power_n_minus_one)
 
+      compute_alpha_square_lagrange()
       verify_quotient_poly_eval_at_zeta(proof)
-
       fold_h(proof)
-
       compute_commitment_linearised_polynomial(proof)
-
       compute_gamma_kzg(proof)
-
       fold_state(proof)
-
       batch_verify_multi_points(proof)
 
       success := mload(add(mem, state_success))
       
       // mstore(add(mem, state_check_pairing), mload(add(vk_selector_commitments_commit_api,0x20)))
 
-      check := mload(add(mem, state_check_pairing))
+      check := mload(add(mem, state_alpha_square_lagrange))
+
+      function compute_alpha_square_lagrange() {   
+        let state := mload(0x40)
+        let mPtr := add(mload(0x40), state_last_mem)
+
+        // zeta**n - 1
+        let res := pow(mload(add(state, state_zeta)), vk_domain_size, mPtr)
+        res := addmod(res, sub(r_mod,1), r_mod)
+        mstore(add(state, state_zeta_power_n_minus_one), res)
+
+        // let res := mload(add(state, state_zeta_power_n_minus_one))
+        let den := addmod(mload(add(state, state_zeta)), sub(r_mod, 1), r_mod)
+        den := pow(den, sub(r_mod, 2), mPtr)
+        den := mulmod(den, vk_inv_domain_size, r_mod)
+        res := mulmod(den, res, r_mod)
+
+        let l_alpha := mload(add(state, state_alpha))
+        res := mulmod(res, l_alpha, r_mod)
+        res := mulmod(res, l_alpha, r_mod)
+        mstore(add(state, state_alpha_square_lagrange), res)
+      }
 
       function batch_verify_multi_points(aproof) {
 
