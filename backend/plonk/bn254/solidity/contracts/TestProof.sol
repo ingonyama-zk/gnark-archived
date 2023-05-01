@@ -1,20 +1,47 @@
 pragma solidity >=0.6.0;
 pragma experimental ABIEncoderV2;
 
-import {Types} from '../crypto/Types.sol';
-import {Bn254} from '../crypto/Bn254.sol';
-
 library TestProof {
 
-    using Types for *;
-    using Bn254 for *;
+    struct Proof {
+
+        uint256 l_com_x;
+        uint256 l_com_y;        
+        uint256 r_com_x;
+        uint256 r_com_y;
+        uint256 o_com_x;
+        uint256 o_com_y;
+        uint256 h_0_x;
+        uint256 h_0_y;
+        uint256 h_1_x;
+        uint256 h_1_y;
+        uint256 h_2_x;
+        uint256 h_2_y;
+        uint256 l_at_zeta;
+        uint256 r_at_zeta;
+        uint256 o_at_zeta;
+        uint256 s1_at_zeta;
+        uint256 s2_at_zeta;
+        uint256 grand_product_commitment_x;
+        uint256 grand_product_commitment_y;
+        uint256 grand_product_at_zeta_omega;
+        uint256 quotient_polynomial_at_zeta;
+        uint256 linearization_polynomial_at_zeta;
+        uint256 opening_at_zeta_proof_x;
+        uint256 opening_at_zeta_proof_y;
+        uint256 opening_at_zeta_omega_proof_x;
+        uint256 opening_at_zeta_omega_proof_y;
+        uint256[] selector_commit_api_at_zeta;
+        uint256[] wire_committed_commitments;
+        
+    }
 
     function get_proof() 
     internal pure returns (bytes memory)
     {
         bytes memory res;
 
-        Types.Proof memory proof;
+        Proof memory proof;
 
         proof.l_com_x = 15136993133195984427146198656723976006016155651448836712029011094324350716138;
         proof.l_com_y = 14459340593279620571863508149384177746249983937035550477949458936596373965107;
@@ -88,14 +115,14 @@ library TestProof {
         proof.selector_commit_api_at_zeta = new uint256[](1);
         proof.selector_commit_api_at_zeta[0] = 3037506189426785371747045033080583929261182816576630524423545100817866974469;
         res = abi.encodePacked(res, proof.selector_commit_api_at_zeta[0]);
-        proof.wire_committed_commitments = new Bn254.G1Point[](1);
-        proof.wire_committed_commitments[0].X =  15552480929910802332205434009033658529300932452690724290794850059288694568607;
-        proof.wire_committed_commitments[0].Y =  4106131824108708883155969901844611304524714469488967324682353598451772881497;
+        proof.wire_committed_commitments = new uint256[](2);
+        proof.wire_committed_commitments[0] =  15552480929910802332205434009033658529300932452690724290794850059288694568607;
+        proof.wire_committed_commitments[1] =  4106131824108708883155969901844611304524714469488967324682353598451772881497;
         
         res = abi.encodePacked(
         res,
-        proof.wire_committed_commitments[0].X,
-        proof.wire_committed_commitments[0].Y
+        proof.wire_committed_commitments[0],
+        proof.wire_committed_commitments[1]
         );
 
         return res;

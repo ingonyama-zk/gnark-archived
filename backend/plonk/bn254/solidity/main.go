@@ -361,7 +361,7 @@ func main() {
 	// checkError(err)
 	// client.Commit()
 
-	_, err = instance.TestAssembly(auth)
+	_, err = instance.TestVerifier(auth)
 	checkError(err)
 	client.Commit()
 
