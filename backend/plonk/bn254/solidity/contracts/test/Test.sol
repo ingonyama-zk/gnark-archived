@@ -22,6 +22,12 @@ contract TestContract {
   using TestProof for *;
 
   uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+  uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
+
+  uint256 constant g2_srs_0_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+  uint256 constant g2_srs_0_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+  uint256 constant g2_srs_0_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
+  uint256 constant g2_srs_0_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
 
   // ----------------------- vk ---------------------
 
@@ -58,10 +64,10 @@ contract TestContract {
     }
   }
 
-  uint256 constant vk_g2_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
-  uint256 constant vk_g2_x_1 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
-  uint256 constant vk_g2_y_0 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
-  uint256 constant vk_g2_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
+  uint256 constant g2_srs_1_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
+  uint256 constant g2_srs_1_y_0 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
+  uint256 constant g2_srs_1_x_1 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
+  uint256 constant g2_srs_1_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
 
   uint256 constant vk_nb_commitments_commit_api = 1;
 
@@ -101,12 +107,12 @@ contract TestContract {
   uint256 constant proof_linearization_polynomial_at_zeta = 0x2c0;               // r(zeta)
 
   // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
-  uint256 constant proof_batch_opening_at_zeta_proof_x = 0x2e0;            // [Wzeta]
-  uint256 constant proof_batch_opening_at_zeta_proof_y = 0x300;
+  uint256 constant proof_batch_opening_at_zeta_x = 0x2e0;            // [Wzeta]
+  uint256 constant proof_batch_opening_at_zeta_y = 0x300;
 
   //Bn254.G1Point opening_at_zeta_omega_proof;      // [Wzeta*omega]
-  uint256 constant proof_opening_at_zeta_omega_proof_x = 0x320;
-  uint256 constant proof_opening_at_zeta_omega_proof_y = 0x340;
+  uint256 constant proof_opening_at_zeta_omega_x = 0x320;
+  uint256 constant proof_opening_at_zeta_omega_y = 0x340;
   
   uint256 constant proof_openings_selector_commit_api_at_zeta = 0x360;
   // -> next part of proof is 
@@ -153,7 +159,7 @@ contract TestContract {
   uint256 constant state_gamma_kzg = 0x220;
 
   uint256 constant state_success = 0x240;
-  uint256 constant state_check = 0x260;
+  uint256 constant state_check_pairing = 0x260;
 
 
   uint256 constant state_last_mem = 0x280;
@@ -244,7 +250,7 @@ contract TestContract {
 
         let size := add(0x2c5, mul(mload(pub_inputs), 0x20)) // 0x2c5 = 22*32+5
         size := add(size, mul(vk_nb_commitments_commit_api, 0x40))
-        pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), size, mPtr, 0x20)) //0x1b -> 000.."gamma"
+        pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1b), size, mPtr, 0x20)) //0x1b -> 000.."gamma"
       }
 
       function derive_beta(aproof, prev_challenge){
@@ -252,7 +258,7 @@ contract TestContract {
         // beta
         mstore(mPtr, 0x62657461) // "beta"
         mstore(add(mPtr, 0x20), prev_challenge)
-        pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0x24, mPtr, 0x20)) //0x1b -> 000.."gamma"
+        pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1c), 0x24, mPtr, 0x20)) //0x1b -> 000.."gamma"
       }
 
       function derive_alpha(aproof, prev_challenge){
@@ -262,7 +268,7 @@ contract TestContract {
         mstore(add(mPtr, 0x20), prev_challenge)
         mstore(add(mPtr, 0x40), mload(add(aproof, proof_grand_product_commitment_x)))
         mstore(add(mPtr, 0x60), mload(add(aproof, proof_grand_product_commitment_y)))
-        pop(staticcall(gas(), 0x2, add(mPtr, 0x1b), 0x65, mPtr, 0x20)) //0x1b -> 000.."gamma"
+        pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1b), 0x65, mPtr, 0x20)) //0x1b -> 000.."gamma"
       }
 
       function derive_zeta(aproof, prev_challenge) {
@@ -276,7 +282,7 @@ contract TestContract {
         mstore(add(mPtr, 0xa0), mload(add(aproof, proof_h_1_y)))
         mstore(add(mPtr, 0xc0), mload(add(aproof, proof_h_2_x)))
         mstore(add(mPtr, 0xe0), mload(add(aproof, proof_h_2_y)))
-        pop(staticcall(gas(), 0x2, add(mPtr, 0x1c), 0xe4, mPtr, 0x20))
+        pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1c), 0xe4, mPtr, 0x20))
       }
     }
 
@@ -317,7 +323,7 @@ contract TestContract {
           mstore(add(mPtr, 0x60), x)
           mstore(add(mPtr, 0x80), e)
           mstore(add(mPtr, 0xa0), r_mod)
-          pop(staticcall(gas(),0x05,mPtr,0xc0,0x00,0x20))
+          pop(staticcall(sub(gas(), 2000),0x05,mPtr,0xc0,0x00,0x20))
           result := mload(0x00)
       }
 
@@ -362,9 +368,6 @@ contract TestContract {
               
               uint256 hash_res = UtilsFr.hash_fr(wire_committed_commitments[2*i], wire_committed_commitments[2*i+1], dst);
               uint256 a = compute_ith_lagrange_at_z(zeta, commitment_indices[i]+public_inputs.length);
-              
-              // a = Fr.mul(hash_res, a);
-              // pi = Fr.add(pi, a);
               assembly {
                 a := mulmod(hash_res, a, r_mod)
                 pi := addmod(pi, a, r_mod)
@@ -392,7 +395,7 @@ contract TestContract {
     // assembly {
     //   let buf := mload(0x40)
     //   mstore(buf, 0x67616d6d61) // "gamma"
-    //   pop(staticcall(gas(), 0x2, add(buf,0x1b), 0x5, buf, 0x20))
+    //   pop(staticcall(sub(gas(), 2000), 0x2, add(buf,0x1b), 0x5, buf, 0x20))
     //   a := mload(buf)
     //   tt := mod(mload(buf), r_mod)
     // }
@@ -409,10 +412,6 @@ contract TestContract {
     uint256 zeta;
 
     (gamma, beta, alpha, zeta) = derive_gamma_beta_alpha_zeta(proof, public_inputs);
-    emit PrintUint256(gamma);
-    emit PrintUint256(beta);
-    emit PrintUint256(alpha);
-    emit PrintUint256(zeta);
 
     uint256 pi = compute_pi(proof, public_inputs, zeta);
      
@@ -426,6 +425,7 @@ contract TestContract {
     uint256 check;
 
     bool success = false;
+    // uint256 success;
 
     assembly {
 
@@ -444,15 +444,79 @@ contract TestContract {
 
       compute_commitment_linearised_polynomial(proof)
 
-      compute_gamma(proof)
+      compute_gamma_kzg(proof)
 
       fold_state(proof)
 
+      batch_verify_multi_points(proof)
+
       success := mload(add(mem, state_success))
       
-      // mstore(add(mem, state_check), mload(add(vk_selector_commitments_commit_api,0x20)))
+      // mstore(add(mem, state_check_pairing), mload(add(vk_selector_commitments_commit_api,0x20)))
 
-      check := mload(add(mem, state_folded_claimed_values))
+      check := mload(add(mem, state_check_pairing))
+
+      function batch_verify_multi_points(aproof) {
+
+        let state := mload(0x40)
+        let mPtr := add(state, state_last_mem)
+
+        let random := 3
+
+        let folded_quotients := mPtr
+        mPtr := add(folded_quotients, 0x40)
+        mstore(folded_quotients, mload(add(aproof, proof_batch_opening_at_zeta_x)))
+        mstore(add(folded_quotients, 0x20), mload(add(aproof, proof_batch_opening_at_zeta_y)))
+        point_acc_mul(folded_quotients, add(aproof, proof_opening_at_zeta_omega_x), random, mPtr)
+
+        let folded_digests := add(state, state_folded_digests_x)
+        point_acc_mul(folded_digests, add(aproof, proof_grand_product_commitment_x), random, mPtr)
+
+        let folded_evals := add(state, state_folded_claimed_values)
+        fr_acc_mul(folded_evals, add(aproof, proof_grand_product_at_zeta_omega), random)
+
+        let folded_evals_commit := mPtr
+        mPtr := add(folded_evals_commit, 0x40)
+        mstore(folded_evals_commit, 0x1)
+        mstore(add(folded_evals_commit, 0x20), 0x2)
+        mstore(add(folded_evals_commit, 0x40), mload(folded_evals))
+        pop(staticcall(sub(gas(), 2000),7,folded_evals_commit,0x60,folded_evals_commit,0x40))
+
+        let folded_evals_commit_y := add(folded_evals_commit, 0x20)
+        mstore(folded_evals_commit_y, sub(p_mod, mload(folded_evals_commit_y)))
+        point_add(folded_digests, folded_digests, folded_evals_commit, mPtr)
+
+        let folded_points_quotients := mPtr
+        mPtr := add(mPtr, 0x40)
+        point_mul(folded_points_quotients, add(aproof, proof_batch_opening_at_zeta_x), mload(add(state, state_zeta)), mPtr)
+        let zeta_omega := mulmod(mload(add(state, state_zeta)), vk_omega, r_mod)
+        random := mulmod(random, zeta_omega, r_mod)
+        point_acc_mul(folded_points_quotients, add(aproof, proof_opening_at_zeta_omega_x), random, mPtr)
+
+        point_add(folded_digests, folded_digests, folded_points_quotients, mPtr)
+
+        let folded_quotients_y := add(folded_quotients, 0x20)
+        mstore(folded_quotients_y, sub(p_mod, mload(folded_quotients_y)))
+        mstore(add(state, state_check_pairing), mload(folded_quotients))
+
+        mstore(mPtr, mload(folded_digests))
+        mstore(add(mPtr, 0x20), mload(add(folded_digests, 0x20)))
+        mstore(add(mPtr, 0x40), g2_srs_0_x_0) // the 4 lines are the canonical G2 point on BN254
+        mstore(add(mPtr, 0x60), g2_srs_0_x_1)
+        mstore(add(mPtr, 0x80), g2_srs_0_y_0)
+        mstore(add(mPtr, 0xa0), g2_srs_0_y_1)
+        mstore(add(mPtr, 0xc0), mload(folded_quotients))
+        mstore(add(mPtr, 0xe0), mload(add(folded_quotients, 0x20)))
+        mstore(add(mPtr, 0x100), g2_srs_1_x_0)
+        mstore(add(mPtr, 0x120), g2_srs_1_x_1)
+        mstore(add(mPtr, 0x140), g2_srs_1_y_0)
+        mstore(add(mPtr, 0x160), g2_srs_1_y_1)
+        let l_success := staticcall(sub(gas(), 2000),8,mPtr,0x180,0x00,0x20)
+        // l_success := true
+        // mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
+        // mstore(add(state, state_success), l_success)
+        // mstore(add(state, state_check_pairing), mload(mPtr))
+      }
 
       // at this stage the state of mPtr is the same as in compute_gamma
       function fold_state(aproof) {
@@ -472,7 +536,7 @@ contract TestContract {
 
         point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x80), acc_gamma, mPtrOffset)
         fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_linearization_polynomial_at_zeta), acc_gamma)
-        mstore(add(state, state_check), acc_gamma)
+        mstore(add(state, state_check_pairing), acc_gamma)
         
         acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
         point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0xc0), acc_gamma, mPtrOffset)
@@ -507,7 +571,7 @@ contract TestContract {
 
       }
 
-      function compute_gamma(aproof) {
+      function compute_gamma_kzg(aproof) {
 
         let state := mload(0x40)
         let mPtr := add(mload(0x40), state_last_mem)
@@ -528,7 +592,7 @@ contract TestContract {
         mstore(add(mPtr,0x1c0), vk_s2_com_x)
         mstore(add(mPtr,0x1e0), vk_s2_com_y)
         
-        // TODO this part needs to be code generated
+        // TODO this part needs to be auto generated
         let offset := 0x200
         mstore(add(mPtr,offset), vk_selector_commitments_commit_api_0_x)
         mstore(add(mPtr,add(offset, 0x20)), vk_selector_commitments_commit_api_0_y)
@@ -536,7 +600,7 @@ contract TestContract {
         let start_input := 0x1b // 00.."gamma"
         let size_input := add(0xf, mul(vk_nb_commitments_commit_api,2)) // number of 32bytes elmts = 15 (zeta+2*7 for the digests) + 2*vk_nb_commitments_commit_api
         size_input := add(0x5, mul(size_input, 0x20)) // size in bytes: 15*32 bytes + 5 bytes for gamma
-        pop(staticcall(gas(), 0x2, add(mPtr,start_input), size_input, add(state, state_gamma_kzg), 0x20))
+        pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr,start_input), size_input, add(state, state_gamma_kzg), 0x20))
         mstore(add(state, state_gamma_kzg), mod(mload(add(state, state_gamma_kzg)), r_mod))
 
       }
@@ -634,8 +698,8 @@ contract TestContract {
       function fold_h(aproof) {
         let state := mload(0x40)
         let n_plus_two := add(vk_domain_size, 2)
-        let zeta_power_n_plus_two := pow(mload(add(state, state_zeta)), n_plus_two)
         let mPtr := add(mload(0x40), state_last_mem)
+        let zeta_power_n_plus_two := pow(mload(add(state, state_zeta)), n_plus_two, mPtr)
         point_mul(add(state, state_folded_h_x), add(aproof, proof_h_2_x), zeta_power_n_plus_two, mPtr)
         point_add(add(state, state_folded_h_x), add(state, state_folded_h_x), add(aproof, proof_h_1_x), mPtr)
         point_mul(add(state, state_folded_h_x), add(state, state_folded_h_x), zeta_power_n_plus_two, mPtr)
@@ -688,7 +752,7 @@ contract TestContract {
         mstore(add(mPtr, 0x20), mload(add(p, 0x20)))
         mstore(add(mPtr, 0x40), mload(q))
         mstore(add(mPtr, 0x60), mload(add(q, 0x20)))
-        let l_success := staticcall(gas(),6,mPtr,0x80,dst,0x40)
+        let l_success := staticcall(sub(gas(), 2000),6,mPtr,0x80,dst,0x40)
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
       }
 
@@ -699,7 +763,7 @@ contract TestContract {
         mstore(mPtr,mload(src))
         mstore(add(mPtr,0x20),mload(add(src,0x20)))
         mstore(add(mPtr,0x40),s)
-        let l_success := staticcall(gas(),7,mPtr,0x60,dst,0x40)
+        let l_success := staticcall(sub(gas(), 2000),7,mPtr,0x60,dst,0x40)
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
       }
 
@@ -709,10 +773,10 @@ contract TestContract {
         mstore(mPtr,mload(src))
         mstore(add(mPtr,0x20),mload(add(src,0x20)))
         mstore(add(mPtr,0x40),s)
-        pop(staticcall(gas(),7,mPtr,0x60,mPtr,0x40)) // TODO should we check success here ?
+        let l_success := staticcall(sub(gas(), 2000),7,mPtr,0x60,mPtr,0x40)
         mstore(add(mPtr,0x40),mload(dst))
         mstore(add(mPtr,0x60),mload(add(dst,0x20)))
-        let l_success := staticcall(gas(),6,mPtr,0x80,dst, 0x40)
+        l_success := and(l_success, staticcall(sub(gas(), 2000),6,mPtr,0x80,dst, 0x40))
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
       }
 
@@ -723,22 +787,21 @@ contract TestContract {
       }
 
       // dst <- x ** e mod r (x, e are values, not pointers)
-      function pow(x, e)->res {
-        let buf := add(mload(0x40), state_last_mem)
-        mstore(buf, 0x20)
-        mstore(add(buf, 0x20), 0x20)
-        mstore(add(buf, 0x40), 0x20)
-        mstore(add(buf, 0x60), x)
-        mstore(add(buf, 0x80), e)
-        mstore(add(buf, 0xa0), r_mod)
-        pop(staticcall(gas(),0x05,buf,0xc0,buf,0x20))
-        res := mload(buf)
+      function pow(x, e, mPtr)->res {
+        mstore(mPtr, 0x20)
+        mstore(add(mPtr, 0x20), 0x20)
+        mstore(add(mPtr, 0x40), 0x20)
+        mstore(add(mPtr, 0x60), x)
+        mstore(add(mPtr, 0x80), e)
+        mstore(add(mPtr, 0xa0), r_mod)
+        pop(staticcall(sub(gas(), 2000),0x05,mPtr,0xc0,mPtr,0x20))
+        res := mload(mPtr)
       }
     }
 
-    // emit PrintUint256(check);
+    emit PrintUint256(check);
     // emit PrintBool(success);
-    return true;
+    // return true;
 
   }
 
