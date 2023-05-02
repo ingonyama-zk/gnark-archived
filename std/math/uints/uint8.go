@@ -2,7 +2,6 @@ package uints
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/internal/logderivprecomp"
@@ -27,6 +26,10 @@ import (
 // TODO: distinguish between when we set constant in-circuit or witness
 // assignment. For constant we don't have to range check but for witness
 // assignment we have to.
+
+// TODO: add something which allows to store array in native element
+
+// TODO: add methods for checking if U8/Long is constant.
 
 type U8 struct {
 	Val      frontend.Variable
@@ -170,6 +173,23 @@ func (bf *BinaryField[T]) PackLSB(a ...U8) T {
 	return ret
 }
 
+func (bf *BinaryField[T]) UnpackMSB(a T) []U8 {
+	ret := make([]U8, len(a))
+	for i := 0; i < len(a); i++ {
+		ret[len(a)-i-1] = a[i]
+	}
+	return ret
+}
+
+func (bf *BinaryField[T]) UnpackLSB(a T) []U8 {
+	// cannot deduce that a can be cast to []U8
+	ret := make([]U8, len(a))
+	for i := 0; i < len(a); i++ {
+		ret[i] = a[i]
+	}
+	return ret
+}
+
 func (bf *BinaryField[T]) twoArgFn(tbl *logderivprecomp.Precomputed, a ...U8) U8 {
 	ret := tbl.Query(a[0].Val, a[1].Val)[0]
 	for i := 2; i < len(a); i++ {
@@ -177,9 +197,6 @@ func (bf *BinaryField[T]) twoArgFn(tbl *logderivprecomp.Precomputed, a ...U8) U8
 	}
 	return U8{Val: ret}
 }
-
-func (bf *BinaryField[T]) and(a ...U8) U8 { return bf.twoArgFn(bf.andT, a...) }
-func (bf *BinaryField[T]) xor(a ...U8) U8 { return bf.twoArgFn(bf.xorT, a...) }
 
 func (bf *BinaryField[T]) twoArgWideFn(tbl *logderivprecomp.Precomputed, a ...T) T {
 	var r T
@@ -262,58 +279,14 @@ func (bf *BinaryField[T]) xxxFromVar(a []frontend.Variable) T {
 	return ret
 }
 
-func (bf *BinaryField[T]) assertEq(a, b U8) {
+func (bf *BinaryField[T]) ByteAssertEq(a, b U8) {
 	bf.api.AssertIsEqual(a.Val, b.Val)
 }
 
 func (bf *BinaryField[T]) AssertEq(a, b T) {
 	for i := 0; i < len(a); i++ {
-		bf.assertEq(a[i], b[i])
+		bf.ByteAssertEq(a[i], b[i])
 	}
-}
-
-func xorHint(_ *big.Int, inputs, outputs []*big.Int) error {
-	outputs[0].Xor(inputs[0], inputs[1])
-	return nil
-}
-
-func andHint(_ *big.Int, inputs, outputs []*big.Int) error {
-	outputs[0].And(inputs[0], inputs[1])
-	return nil
-}
-
-func orHint(_ *big.Int, inputs, outputs []*big.Int) error {
-	outputs[0].Or(inputs[0], inputs[1])
-	return nil
-}
-
-func addHint(_ *big.Int, inputs, outputs []*big.Int) error {
-	outputs[0].Add(inputs[0], inputs[1])
-	outputs[0].And(outputs[0], big.NewInt((1<<8)-1))
-	return nil
-}
-
-func toBytes(m *big.Int, inputs []*big.Int, outputs []*big.Int) error {
-	if len(inputs) != 2 {
-		return fmt.Errorf("input must be 2 elements")
-	}
-	if !inputs[0].IsUint64() {
-		return fmt.Errorf("first input must be uint64")
-	}
-	nbLimbs := int(inputs[0].Uint64())
-	if len(outputs) != nbLimbs {
-		return fmt.Errorf("output must be 8 elements")
-	}
-	if !inputs[1].IsUint64() {
-		return fmt.Errorf("input must be 64 bits")
-	}
-	base := new(big.Int).Lsh(big.NewInt(1), uint(8))
-	tmp := new(big.Int).Set(inputs[1])
-	for i := 0; i < nbLimbs; i++ {
-		outputs[i].Mod(tmp, base)
-		tmp.Rsh(tmp, 8)
-	}
-	return nil
 }
 
 func reslice[T U32 | U64](in []T) [][]U8 {
