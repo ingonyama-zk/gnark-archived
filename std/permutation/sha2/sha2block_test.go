@@ -26,31 +26,10 @@ var _K = []uint32{
 
 const (
 	chunk = 64
-	// init0     = 0x6A09E667
-	// init1     = 0xBB67AE85
-	// init2     = 0x3C6EF372
-	// init3     = 0xA54FF53A
-	// init4     = 0x510E527F
-	// init5     = 0x9B05688C
-	// init6     = 0x1F83D9AB
-	// init7     = 0x5BE0CD19
-	// init0_224 = 0xC1059ED8
-	// init1_224 = 0x367CD507
-	// init2_224 = 0x3070DD17
-	// init3_224 = 0xF70E5939
-	// init4_224 = 0xFFC00B31
-	// init5_224 = 0x68581511
-	// init6_224 = 0x64F98FA7
-	// init7_224 = 0xBEFA4FA4
 )
 
-// digest represents the partial evaluation of a checksum.
 type digest struct {
 	h [8]uint32
-	// x     [chunk]byte
-	// nx    int
-	// len   uint64
-	// is224 bool // mark if this digest is SHA-224
 }
 
 func blockGeneric(dig *digest, p []byte) {
@@ -78,14 +57,7 @@ func blockGeneric(dig *digest, p []byte) {
 
 			t2 := ((bits.RotateLeft32(a, -2)) ^ (bits.RotateLeft32(a, -13)) ^ (bits.RotateLeft32(a, -22))) + ((a & b) ^ (a & c) ^ (b & c))
 
-			h = g
-			g = f
-			f = e
-			e = d + t1
-			d = c
-			c = b
-			b = a
-			a = t1 + t2
+			h, g, f, e, d, c, b, a = g, f, e, d+t1, c, b, a, t1+t2
 		}
 
 		h0 += a
@@ -110,11 +82,11 @@ type circuitBlock struct {
 }
 
 func (c *circuitBlock) Define(api frontend.API) error {
-	res := sha2.Permute(api, c.CurrentDig, c.In)
 	uapi, err := uints.New[uints.U32](api)
 	if err != nil {
 		return err
 	}
+	res := sha2.Permute(uapi, c.CurrentDig, c.In)
 	for i := range c.Expected {
 		uapi.AssertEq(c.Expected[i], res[i])
 	}
@@ -122,6 +94,7 @@ func (c *circuitBlock) Define(api frontend.API) error {
 }
 
 func TestBlockGeneric(t *testing.T) {
+	assert := test.NewAssert(t)
 	s := rand.New(rand.NewSource(time.Now().Unix()))
 	witness := circuitBlock{}
 	dig := digest{}
@@ -138,9 +111,12 @@ func TestBlockGeneric(t *testing.T) {
 	for i := range dig.h {
 		witness.Expected[i] = uints.NewU32(dig.h[i])
 	}
-
 	err := test.IsSolved(&circuitBlock{}, &witness, ecc.BN254.ScalarField())
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(err)
+	// assert.ProverSucceeded(&circuitBlock{}, &witness,
+	// 	test.WithCurves(ecc.BN254),
+	// 	test.WithBackends(backend.GROTH16, backend.PLONK),
+	// 	test.NoFuzzing(),
+	// 	test.NoSerialization(),
+	// )
 }

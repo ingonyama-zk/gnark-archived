@@ -1,11 +1,8 @@
 package sha2
 
 import (
-	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/math/uints"
 )
-
-const chunk = 64
 
 var _K = uints.NewU32Array([]uint32{
 	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -18,13 +15,8 @@ var _K = uints.NewU32Array([]uint32{
 	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 })
 
-func Permute(api frontend.API, currentHash [8]uints.U32, p [64]uints.U8) (newHash [8]uints.U32) {
+func Permute(uapi *uints.BinaryField[uints.U32], currentHash [8]uints.U32, p [64]uints.U8) (newHash [8]uints.U32) {
 	var w [64]uints.U32
-
-	uapi, err := uints.New[uints.U32](api)
-	if err != nil {
-		panic(err)
-	}
 
 	for i := 0; i < 16; i++ {
 		w[i] = uapi.PackMSB(p[4*i], p[4*i+1], p[4*i+2], p[4*i+3])
