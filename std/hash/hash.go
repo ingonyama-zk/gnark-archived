@@ -17,8 +17,14 @@ limitations under the License.
 // Package hash provides an interface that hash functions (as gadget) should implement.
 package hash
 
-import "github.com/consensys/gnark/frontend"
+import (
+	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/math/uints"
+)
 
+// TODO: rename Hash to SnarkHasher. In the documentation mention that the
+// values have to be snark field elements. If necessary, add helper methods to
+// check.
 type Hash interface {
 
 	// Sum computes the hash of the internal state of the hash function.
@@ -29,4 +35,11 @@ type Hash interface {
 
 	// Reset empty the internal state and put the intermediate state to zero.
 	Reset()
+}
+
+type BinaryHasher interface {
+	Sum() []uints.U8
+	FixedLengthSum(length frontend.Variable) []uints.U8
+	Write([]uints.U8)
+	Size() int
 }
