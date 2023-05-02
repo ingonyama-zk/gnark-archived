@@ -331,54 +331,120 @@ library PlonkVerifier {
         uint256 zeta
     ) internal returns (uint256) {
 
-        // evaluation of Z=Xⁿ⁻¹ at ζ
-        // uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
-        // zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
-        uint256 zeta_power_n_minus_one;
+      // evaluation of Z=Xⁿ⁻¹ at ζ
+      // uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
+      // zeta_power_n_minus_one = Fr.sub(zeta_power_n_minus_one, 1);
+      uint256 zeta_power_n_minus_one;
 
-        assembly {
-          // _n^_i [r]
-          function pow_local(x, e)->result {
-            let mPtr := mload(0x40)
-            mstore(mPtr, 0x20)
-            mstore(add(mPtr, 0x20), 0x20)
-            mstore(add(mPtr, 0x40), 0x20)
-            mstore(add(mPtr, 0x60), x)
-            mstore(add(mPtr, 0x80), e)
-            mstore(add(mPtr, 0xa0), r_mod)
-            pop(staticcall(sub(gas(), 2000),0x05,mPtr,0xc0,0x00,0x20))
-            result := mload(0x00)
+      uint256 pi;
+
+      assembly {
+        
+        sum_pi_wo_api_commit(add(public_inputs,0x20), mload(public_inputs), zeta)
+        pi := mload(mload(0x40))
+
+        function sum_pi_wo_api_commit(ins, n, z) {
+          let li := mload(0x40)
+          batch_compute_lagranges_at_z(z, n, li)
+          let res := 0
+          let tmp := 0
+          for {let i:=0} lt(i,n) {i:=add(i,1)}
+          {
+            tmp := mulmod(mload(li), mload(ins), r_mod)
+            res := addmod(res, tmp, r_mod)
+            li := add(li, 0x20)
+            ins := add(ins, 0x20)
           }
-          zeta_power_n_minus_one := pow_local(zeta, vk_domain_size)
-          zeta_power_n_minus_one := addmod(zeta_power_n_minus_one, sub(r_mod, 1), r_mod)
+          mstore(mload(0x40), res)
         }
 
-        // compute PI = ∑_{i<n} Lᵢ*wᵢ
-        uint256 pi = Utils.compute_sum_li_zi(public_inputs, zeta, vk_omega, vk_domain_size);
-        
-        uint256[] memory commitment_indices = new uint256[](vk_nb_commitments_commit_api);
-        load_vk_commitments_indices_commit_api(commitment_indices);
-    
-        if (vk_nb_commitments_commit_api > 0) {
+        // mPtr <- [L_0(z), .., L_{n-1}(z)]
+        function batch_compute_lagranges_at_z(z, n, mPtr) {
+          let zn := addmod(pow(z, vk_domain_size, mPtr), sub(r_mod, 1), r_mod)
+          zn := mulmod(zn, vk_inv_domain_size, r_mod)
+          let _w := 1
+          let _mPtr := mPtr
+          for {let i:=0} lt(i,n) {i:=add(i,1)}
+          {
+            mstore(_mPtr, addmod(z,sub(r_mod, _w), r_mod))
+            _w := mulmod(_w, vk_omega, r_mod)
+            _mPtr := add(_mPtr, 0x20)
+          }
+          batch_invert(mPtr, n, _mPtr)
+          _mPtr := mPtr
+          _w := 1
+          for {let i:=0} lt(i,n) {i:=add(i,1)}
+          {
+            mstore(_mPtr, mulmod(mulmod(mload(_mPtr), zn , r_mod), _w, r_mod))
+            _mPtr := add(_mPtr, 0x20)
+            _w := mulmod(_w, vk_omega, r_mod)
+          }
+        } 
 
-          uint256[] memory wire_committed_commitments;
-          wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
-          load_wire_commitments_commit_api(wire_committed_commitments, proof);
-
-          // string memory dst = "BSB22-Plonk";
-
-          for (uint256 i=0; i<vk_nb_commitments_commit_api; i++){
-              
-              uint256 hash_res = Utils.hash_fr(wire_committed_commitments[2*i], wire_committed_commitments[2*i+1]);
-              uint256 a = compute_ith_lagrange_at_z(zeta, commitment_indices[i]+public_inputs.length);
-              assembly {
-                a := mulmod(hash_res, a, r_mod)
-                pi := addmod(pi, a, r_mod)
-              }
+        function batch_invert(ins, nb_ins, mPtr) {
+          mstore(mPtr, 1)
+          let offset := 0
+          for {let i:=0} lt(i, nb_ins) {i:=add(i,1)}
+          {
+            let prev := mload(add(mPtr, offset))
+            let cur := mload(add(ins, offset))
+            cur := mulmod(prev, cur, r_mod)
+            offset := add(offset, 0x20)
+            mstore(add(mPtr, offset), cur)
+          }
+          ins := add(ins, sub(offset, 0x20))
+          mPtr := add(mPtr, offset)
+          let inv := pow(mload(mPtr), sub(r_mod,2), add(mPtr, 0x20))
+          for {let i:=0} lt(i, nb_ins) {i:=add(i,1)}
+          {
+            mPtr := sub(mPtr, 0x20)
+            let tmp := mload(ins)
+            let cur := mulmod(inv, mload(mPtr), r_mod)
+            mstore(ins, cur)
+            inv := mulmod(inv, tmp, r_mod)
+            ins := sub(ins, 0x20)
           }
         }
-        
-        return pi;
+
+        // res <- x^e mod r
+        function pow(x, e, mPtr)->res {
+          mstore(mPtr, 0x20)
+          mstore(add(mPtr, 0x20), 0x20)
+          mstore(add(mPtr, 0x40), 0x20)
+          mstore(add(mPtr, 0x60), x)
+          mstore(add(mPtr, 0x80), e)
+          mstore(add(mPtr, 0xa0), r_mod)
+          pop(staticcall(sub(gas(), 2000),0x05,mPtr,0xc0,mPtr,0x20))
+          res := mload(mPtr)
+        }
+
+        zeta_power_n_minus_one := pow(zeta, vk_domain_size, mload(0x40))
+        zeta_power_n_minus_one := addmod(zeta_power_n_minus_one, sub(r_mod, 1), r_mod)
+      }
+
+      uint256[] memory commitment_indices = new uint256[](vk_nb_commitments_commit_api);
+      load_vk_commitments_indices_commit_api(commitment_indices);
+  
+      if (vk_nb_commitments_commit_api > 0) {
+
+        uint256[] memory wire_committed_commitments;
+        wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
+        load_wire_commitments_commit_api(wire_committed_commitments, proof);
+
+        // string memory dst = "BSB22-Plonk";
+
+        for (uint256 i=0; i<vk_nb_commitments_commit_api; i++){
+            
+            uint256 hash_res = Utils.hash_fr(wire_committed_commitments[2*i], wire_committed_commitments[2*i+1]);
+            uint256 a = compute_ith_lagrange_at_z(zeta, commitment_indices[i]+public_inputs.length);
+            assembly {
+              a := mulmod(hash_res, a, r_mod)
+              pi := addmod(pi, a, r_mod)
+            }
+        }
+      }
+      
+      return pi;
     }
 
   function Verify(bytes memory proof, uint256[] memory public_inputs) 
