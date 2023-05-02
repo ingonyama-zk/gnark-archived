@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 library TestProof {
 
+    // here to avoid stack too deep error...
     struct Proof {
 
         uint256 l_com_x;
