@@ -6,6 +6,7 @@ import (
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/internal/logderivprecomp"
 	"github.com/consensys/gnark/std/math/bits"
+	"github.com/consensys/gnark/std/math/bitslice"
 	"github.com/consensys/gnark/std/rangecheck"
 )
 
@@ -247,17 +248,26 @@ func (bf *BinaryField[T]) Lrot(a T, c int) T {
 }
 
 func (bf *BinaryField[T]) Rshift(a T, c int) T {
-	// TODO: think about it bit more. Right now just want to get working.
-	v := bf.xxxToVar(a)
-	b := len(a) * 8
-	res := make([]frontend.Variable, b)
-	for i := 0; i < len(res)-c; i++ {
-		res[i] = v[i+c]
+	shiftBl := c / 8
+	shiftBt := c % 8
+	partitioned := make([][2]frontend.Variable, len(a)-shiftBl)
+	for i := range partitioned {
+		lower, upper := bitslice.Partition(bf.api, a[i+shiftBl].Val, uint(shiftBt), bitslice.WithNbDigits(8))
+		partitioned[i] = [2]frontend.Variable{lower, upper}
 	}
-	for i := len(res) - c; i < len(res); i++ {
-		res[i] = 0
+	var ret T
+	for i := 0; i < len(a)-shiftBl-1; i++ {
+		if shiftBt != 0 {
+			ret[i].Val = bf.api.Add(partitioned[i][1], bf.api.Mul(1<<(8-shiftBt), partitioned[i+1][0]))
+		} else {
+			ret[i].Val = partitioned[i][1]
+		}
 	}
-	return bf.xxxFromVar(res)
+	ret[len(a)-shiftBl-1].Val = partitioned[len(a)-shiftBl-1][1]
+	for i := len(a) - shiftBl; i < len(ret); i++ {
+		ret[i] = NewU8(0)
+	}
+	return ret
 }
 
 func (bf *BinaryField[T]) xxxToVar(a T) []frontend.Variable {

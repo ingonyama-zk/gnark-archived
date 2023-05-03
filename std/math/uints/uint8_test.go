@@ -56,3 +56,31 @@ func TestToFromCirc(t *testing.T) {
 	err := test.IsSolved(&circuit, &witness, ecc.BN254.ScalarField())
 	assert.NoError(err)
 }
+
+type rshiftCircuit struct {
+	In, Expected U32
+	Shift        int
+}
+
+func (c *rshiftCircuit) Define(api frontend.API) error {
+	uapi, err := New[U32](api)
+	if err != nil {
+		return err
+	}
+	res := uapi.Rshift(c.In, c.Shift)
+	uapi.AssertEq(res, c.Expected)
+	return nil
+}
+
+func TestRshift(t *testing.T) {
+	assert := test.NewAssert(t)
+	var err error
+	err = test.IsSolved(&rshiftCircuit{Shift: 4}, &rshiftCircuit{Shift: 4, In: NewU32(0x12345678), Expected: NewU32(0x1234567)}, ecc.BN254.ScalarField())
+	assert.NoError(err)
+	err = test.IsSolved(&rshiftCircuit{Shift: 12}, &rshiftCircuit{Shift: 12, In: NewU32(0x12345678), Expected: NewU32(0x12345)}, ecc.BN254.ScalarField())
+	assert.NoError(err)
+	err = test.IsSolved(&rshiftCircuit{Shift: 3}, &rshiftCircuit{Shift: 3, In: NewU32(0x12345678), Expected: NewU32(0x2468acf)}, ecc.BN254.ScalarField())
+	assert.NoError(err)
+	err = test.IsSolved(&rshiftCircuit{Shift: 11}, &rshiftCircuit{Shift: 11, In: NewU32(0x12345678), Expected: NewU32(0x2468a)}, ecc.BN254.ScalarField())
+	assert.NoError(err)
+}
