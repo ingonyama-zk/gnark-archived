@@ -10,6 +10,7 @@ import (
 	"github.com/consensys/gnark/std/internal/logderivarg"
 	"github.com/consensys/gnark/std/lookup/logderivlookup"
 	"github.com/consensys/gnark/std/math/bits"
+	"github.com/consensys/gnark/std/math/bitslice"
 	"github.com/consensys/gnark/std/math/emulated"
 	"github.com/consensys/gnark/std/rangecheck"
 	"github.com/consensys/gnark/std/selector"
@@ -38,4 +39,5 @@ func registerHints() {
 	solver.RegisterHint(evmprecompiles.GetHints()...)
 	solver.RegisterHint(logderivarg.GetHints()...)
 	solver.RegisterHint(logderivlookup.GetHints()...)
+	solver.RegisterHint(bitslice.GetHints()...)
 }
