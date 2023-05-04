@@ -6,56 +6,98 @@ import {Utils} from './Utils.sol';
 library PlonkVerifier {
 
   using Utils for *;
-
   uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
   uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
-
   uint256 constant g2_srs_0_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
   uint256 constant g2_srs_0_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
   uint256 constant g2_srs_0_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
   uint256 constant g2_srs_0_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
-
   // ----------------------- vk ---------------------
-
   uint256 constant vk_domain_size = 32;
   uint256 constant vk_inv_domain_size = 21204235282094297871551205565717985242031228012903033270457635305745314480129;
   uint256 constant vk_omega = 4419234939496763621076330863786513495701855246241724391626358375488475697872;
-  uint256 constant vk_ql_com_x = 3249492299937356830250489011041180308067992016591401527068121784106989719648;
-  uint256 constant vk_ql_com_y = 10459965615643388455781136436726437288800547058370943251873623010731177440661;
-  uint256 constant vk_qr_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
-  uint256 constant vk_qr_com_y = 21702499139579688323831199788191067119894864133780232136805753631080002427269;
-  uint256 constant vk_qm_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
-  uint256 constant vk_qm_com_y = 17892566681051922084336151301309366102531970850688837636319063607093137053627;
-  uint256 constant vk_qo_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
-  uint256 constant vk_qo_com_y = 185743732259586898415205957066207968801447023517591525883284263565223781314;
-  uint256 constant vk_qk_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
-  uint256 constant vk_qk_com_y = 3995676190787353137910254443947908986164340306608986026369974287552089154956;
-  uint256 constant vk_s1_com_x = 21855018542748430565529761638971558125245342907512256948393636927196567938581;
-  uint256 constant vk_s1_com_y = 11712367707713868753009749003773415568950091810241040629437353992390346924664;
-  uint256 constant vk_s2_com_x = 17771334109737095158037840313408192145908096951666120454569319380122548644876;
-  uint256 constant vk_s2_com_y = 1557548382852739357942435662406820815086929855797636868167313245414326520716;
-  uint256 constant vk_s3_com_x = 3042622247313413937841956962385471739016337091363862127586520834001367730368;
-  uint256 constant vk_s3_com_y = 11237012146990418046605498478831176936003562652049794077037238123223985118834;
-
+  uint256 constant vk_ql_com_x = 3244786682635763869941435369019353124052891546975275651379442382714032521114;
+  uint256 constant vk_ql_com_y = 4227446086326404741277392491671653121809206860866961135779554094694838318272;
+  uint256 constant vk_qr_com_x = 7360998509342757474709172769229893258691397771930788429872389441460103845843;
+  uint256 constant vk_qr_com_y = 20089807417798738674441181484158596391318123041536024151681426360781296038742;
+  uint256 constant vk_qm_com_x = 113707464588157253317740430413758207542850704963951060814353045291503848582;
+  uint256 constant vk_qm_com_y = 13670128172267842107893049298348572419871257011196380878619271003597793471897;
+  uint256 constant vk_qo_com_x = 7360998509342757474709172769229893258691397771930788429872389441460103845843;
+  uint256 constant vk_qo_com_y = 1798435454040536547805224261098678697378188115761799511007611533863930169841;
+  uint256 constant vk_qk_com_x = 113707464588157253317740430413758207542850704963951060814353045291503848582;
+  uint256 constant vk_qk_com_y = 8218114699571433114353356446908702668825054146101442784069766891047432736686;
+  uint256 constant vk_s1_com_x = 7146911171293968203327527029640271783984915209887361178963051294582033224706;
+  uint256 constant vk_s1_com_y = 3846652344967559175461115228735226876170211894720787165297135111025912845527;
+  uint256 constant vk_s2_com_x = 4508003832847645577199073733864002015157235827711517512993540391552518932087;
+  uint256 constant vk_s2_com_y = 4354880947311033864155537062780671426650953341278625935705888840132464972679;
+  uint256 constant vk_s3_com_x = 3988363374239609328168179283286611863293911171156262256069381246414591556495;
+  uint256 constant vk_s3_com_y = 2190914203629913484863665957362274865515461279469926795106407641169492678868;
   uint256 constant vk_coset_shift = 5;
-
-  uint256 constant vk_selector_commitments_commit_api_0_x = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
-  uint256 constant vk_selector_commitments_commit_api_0_y = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
-
+  uint256 constant vk_selector_commitments_commit_api_0_x = 9260723560788468537802513394108434108043618515586474488643064182227950279762;
+  uint256 constant vk_selector_commitments_commit_api_0_y = 3365386116158874130372466929400739283922378586192552083108598762766290312079;
+  uint256 constant g2_srs_1_x_0 = 21472261088047980998886534234402610003493722877181433371667940525878595575229;
+  uint256 constant g2_srs_1_x_1 = 13962022002416111196083967817871747574465134211984184765113413052914342279434;
+  uint256 constant g2_srs_1_y_0 = 1946377645007782177688890134200631186942441417746339208330323427379738402474;
+  uint256 constant g2_srs_1_y_1 = 18904620486316843014406362651343937260381854504159133554107313655509512827599;
   function load_vk_commitments_indices_commit_api(uint256[] memory v)
   internal view {
     assembly {
-      let _v := add(v, 0x20)
-      mstore(_v, 3)
+    let _v := add(v, 0x20)
+    mstore(_v, 3)
+    _v := add(_v, 0x20)
     }
   }
-
-  uint256 constant g2_srs_1_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
-  uint256 constant g2_srs_1_y_0 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
-  uint256 constant g2_srs_1_x_1 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
-  uint256 constant g2_srs_1_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
-
   uint256 constant vk_nb_commitments_commit_api = 1;
+
+  // uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+  // uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
+
+  // uint256 constant g2_srs_0_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+  // uint256 constant g2_srs_0_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+  // uint256 constant g2_srs_0_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
+  // uint256 constant g2_srs_0_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
+
+  // // ----------------------- vk ---------------------
+
+  // uint256 constant vk_domain_size = 32;
+  // uint256 constant vk_inv_domain_size = 21204235282094297871551205565717985242031228012903033270457635305745314480129;
+  // uint256 constant vk_omega = 4419234939496763621076330863786513495701855246241724391626358375488475697872;
+  // uint256 constant vk_ql_com_x = 3249492299937356830250489011041180308067992016591401527068121784106989719648;
+  // uint256 constant vk_ql_com_y = 10459965615643388455781136436726437288800547058370943251873623010731177440661;
+  // uint256 constant vk_qr_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
+  // uint256 constant vk_qr_com_y = 21702499139579688323831199788191067119894864133780232136805753631080002427269;
+  // uint256 constant vk_qm_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
+  // uint256 constant vk_qm_com_y = 17892566681051922084336151301309366102531970850688837636319063607093137053627;
+  // uint256 constant vk_qo_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
+  // uint256 constant vk_qo_com_y = 185743732259586898415205957066207968801447023517591525883284263565223781314;
+  // uint256 constant vk_qk_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
+  // uint256 constant vk_qk_com_y = 3995676190787353137910254443947908986164340306608986026369974287552089154956;
+  // uint256 constant vk_s1_com_x = 21855018542748430565529761638971558125245342907512256948393636927196567938581;
+  // uint256 constant vk_s1_com_y = 11712367707713868753009749003773415568950091810241040629437353992390346924664;
+  // uint256 constant vk_s2_com_x = 17771334109737095158037840313408192145908096951666120454569319380122548644876;
+  // uint256 constant vk_s2_com_y = 1557548382852739357942435662406820815086929855797636868167313245414326520716;
+  // uint256 constant vk_s3_com_x = 3042622247313413937841956962385471739016337091363862127586520834001367730368;
+  // uint256 constant vk_s3_com_y = 11237012146990418046605498478831176936003562652049794077037238123223985118834;
+
+  // uint256 constant vk_coset_shift = 5;
+
+  // uint256 constant vk_selector_commitments_commit_api_0_x = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
+  // uint256 constant vk_selector_commitments_commit_api_0_y = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
+
+  // function load_vk_commitments_indices_commit_api(uint256[] memory v)
+  // internal view {
+  //   assembly {
+  //     let _v := add(v, 0x20)
+  //     mstore(_v, 3)
+  //   }
+  // }
+
+  // uint256 constant g2_srs_1_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
+  // uint256 constant g2_srs_1_y_0 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
+  // uint256 constant g2_srs_1_x_1 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
+  // uint256 constant g2_srs_1_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
+
+  // uint256 constant vk_nb_commitments_commit_api = 1;
 
   // ------------------------------------------------
 
@@ -90,7 +132,7 @@ library PlonkVerifier {
 
   uint256 constant proof_grand_product_at_zeta_omega = 0x280;                    // z(w*zeta)
   uint256 constant proof_quotient_polynomial_at_zeta = 0x2a0;                    // t(zeta)
-  uint256 constant proof_linearization_polynomial_at_zeta = 0x2c0;               // r(zeta)
+  uint256 constant proof_linearised_polynomial_at_zeta = 0x2c0;               // r(zeta)
 
   // Folded proof for the opening of H, linearised poly, l, r, o, s_1, s_2, qcp
   uint256 constant proof_batch_opening_at_zeta_x = 0x2e0;            // [Wzeta]
@@ -226,6 +268,7 @@ library PlonkVerifier {
           _mPtr := add(_mPtr, 0x40)
           _proof := add(_proof, 0x40)
         }
+        // pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1b), 0x2a5, mPtr, 0x20)) //0x1b -> 000.."gamma"
 
         mstore(_mPtr, mload(add(aproof, proof_l_com_x)))
         mstore(add(_mPtr, 0x20), mload(add(aproof, proof_l_com_y)))
@@ -233,6 +276,7 @@ library PlonkVerifier {
         mstore(add(_mPtr, 0x60), mload(add(aproof, proof_r_com_y)))
         mstore(add(_mPtr, 0x80), mload(add(aproof, proof_o_com_x)))
         mstore(add(_mPtr, 0xa0), mload(add(aproof, proof_o_com_y)))
+        // pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr, 0x1b), 0x365, mPtr, 0x20)) //0x1b -> 000.."gamma"
 
         let size := add(0x2c5, mul(mload(pub_inputs), 0x20)) // 0x2c5 = 22*32+5
         size := add(size, mul(vk_nb_commitments_commit_api, 0x40))
@@ -431,8 +475,6 @@ library PlonkVerifier {
         wire_committed_commitments = new uint256[](2*vk_nb_commitments_commit_api);
         load_wire_commitments_commit_api(wire_committed_commitments, proof);
 
-        // string memory dst = "BSB22-Plonk";
-
         for (uint256 i=0; i<vk_nb_commitments_commit_api; i++){
             
             uint256 hash_res = Utils.hash_fr(wire_committed_commitments[2*i], wire_committed_commitments[2*i+1]);
@@ -483,7 +525,7 @@ library PlonkVerifier {
 
       success := mload(add(mem, state_success))
       
-      check := mload(add(mem,state_check_pairing))
+      check := mload(add(mem, state_gamma_kzg))
 
       function compute_alpha_square_lagrange() {   
         let state := mload(0x40)
@@ -585,7 +627,7 @@ library PlonkVerifier {
         mstore(add(state, state_folded_claimed_values), mload(add(aproof, proof_quotient_polynomial_at_zeta)))
 
         point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x80), acc_gamma, mPtrOffset)
-        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_linearization_polynomial_at_zeta), acc_gamma)
+        fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_linearised_polynomial_at_zeta), acc_gamma)
         mstore(add(state, state_check_pairing), acc_gamma)
         
         acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
@@ -646,9 +688,27 @@ library PlonkVerifier {
         let offset := 0x200
         mstore(add(mPtr,offset), vk_selector_commitments_commit_api_0_x)
         mstore(add(mPtr,add(offset, 0x20)), vk_selector_commitments_commit_api_0_y)
+        offset := add(offset, 0x40)
+
+        mstore(add(mPtr, offset), mload(add(aproof, proof_quotient_polynomial_at_zeta)))
+        mstore(add(mPtr, add(offset, 0x20)), mload(add(aproof, proof_linearised_polynomial_at_zeta)))
+        mstore(add(mPtr, add(offset, 0x40)), mload(add(aproof, proof_l_at_zeta)))
+        mstore(add(mPtr, add(offset, 0x60)), mload(add(aproof, proof_r_at_zeta)))
+        mstore(add(mPtr, add(offset, 0x80)), mload(add(aproof, proof_o_at_zeta)))
+        mstore(add(mPtr, add(offset, 0xa0)), mload(add(aproof, proof_s1_at_zeta)))
+        mstore(add(mPtr, add(offset, 0xc0)), mload(add(aproof, proof_s2_at_zeta)))
+
+        let _mPtr := add(mPtr, add(offset, 0xe0))
+        let _poscaz := add(aproof, proof_openings_selector_commit_api_at_zeta)
+        for {let i:=0} lt(i, vk_nb_commitments_commit_api) {i:=add(i,1)}
+        {
+          mstore(_mPtr, mload(_poscaz))
+          _poscaz := add(_poscaz, 0x20)
+          _mPtr := add(_mPtr, 0x20)
+        }
 
         let start_input := 0x1b // 00.."gamma"
-        let size_input := add(0xf, mul(vk_nb_commitments_commit_api,2)) // number of 32bytes elmts = 15 (zeta+2*7 for the digests) + 2*vk_nb_commitments_commit_api
+        let size_input := add(0x16, mul(vk_nb_commitments_commit_api,3)) // number of 32bytes elmts = 0x16 (zeta+2*7+7 for the digests+openings) + 2*vk_nb_commitments_commit_api (for the commitments of the selectors) + vk_nb_commitments_commit_api (for the openings of the selectors)
         size_input := add(0x5, mul(size_input, 0x20)) // size in bytes: 15*32 bytes + 5 bytes for gamma
         pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr,start_input), size_input, add(state, state_gamma_kzg), 0x20))
         mstore(add(state, state_gamma_kzg), mod(mload(add(state, state_gamma_kzg)), r_mod))
@@ -786,7 +846,7 @@ library PlonkVerifier {
         let computed_quotient := add(s1,0x60)
 
         // linearizedpolynomial + pi(zeta)
-        mstore(computed_quotient, addmod(mload(add(aproof, proof_linearization_polynomial_at_zeta)), mload(add(state, state_pi)), r_mod))
+        mstore(computed_quotient, addmod(mload(add(aproof, proof_linearised_polynomial_at_zeta)), mload(add(state, state_pi)), r_mod))
         mstore(computed_quotient, addmod(mload(computed_quotient), mload(s1), r_mod))
         mstore(computed_quotient, addmod(mload(computed_quotient), sub(r_mod,mload(add(state, state_alpha_square_lagrange))), r_mod))
         mstore(s2, mulmod(mload(add(aproof,proof_quotient_polynomial_at_zeta)), mload(add(state, state_zeta_power_n_minus_one)), r_mod))

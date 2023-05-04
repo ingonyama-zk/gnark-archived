@@ -51,6 +51,11 @@ gnarkd/circuits/**
 # Jetbrains stuff
 .idea/
 
+
 # Compiled Solidity
 *.bin
 *.abi
+
+# go workspace
+go.work
+go.work.sum

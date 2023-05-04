@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark-crypto/ecc/bn254"
-	"github.com/consensys/gnark-crypto/ecc/bn254/fr/kzg"
 	"github.com/consensys/gnark/backend/plonk"
 	bn254plonk "github.com/consensys/gnark/backend/plonk/bn254"
 	contract "github.com/consensys/gnark/backend/plonk/bn254/solidity/gopkg"
@@ -105,7 +103,7 @@ func (c *commitmentCircuit) Define(api frontend.API) error {
 	return err
 }
 
-func getVkProofCommitmentCircuit() (bn254plonk.Proof, bn254plonk.VerifyingKey, bn254.G2Affine) {
+func getVkProofCommitmentCircuit() (bn254plonk.Proof, bn254plonk.VerifyingKey) {
 
 	var circuit commitmentCircuit
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), scs.NewBuilder, &circuit)
@@ -134,8 +132,64 @@ func getVkProofCommitmentCircuit() (bn254plonk.Proof, bn254plonk.VerifyingKey, b
 	tvk := vk.(*bn254plonk.VerifyingKey)
 	tproof := proof.(*bn254plonk.Proof)
 
-	tsrs := srs.(*kzg.SRS)
-	return *tproof, *tvk, tsrs.G2[1]
+	return *tproof, *tvk
+}
+
+func printvk(vk bn254plonk.VerifyingKey) {
+
+	fmt.Println("uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;")
+	fmt.Println("uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;")
+
+	fmt.Printf("uint256 constant g2_srs_0_x_0 = %s;\n", vk.Kzg.G2[0].X.A1.String())
+	fmt.Printf("uint256 constant g2_srs_0_x_1 = %s;\n", vk.Kzg.G2[0].X.A0.String())
+	fmt.Printf("uint256 constant g2_srs_0_y_0 = %s;\n", vk.Kzg.G2[0].Y.A1.String())
+	fmt.Printf("uint256 constant g2_srs_0_y_1 = %s;\n", vk.Kzg.G2[0].Y.A0.String())
+
+	fmt.Printf("// ----------------------- vk ---------------------\n")
+
+	fmt.Printf("uint256 constant vk_domain_size = %d;\n", vk.Size)
+	fmt.Printf("uint256 constant vk_inv_domain_size = %s;\n", vk.SizeInv.String())
+	fmt.Printf("uint256 constant vk_omega = %s;\n", vk.Generator.String())
+	fmt.Printf("uint256 constant vk_ql_com_x = %s;\n", vk.Ql.X.String())
+	fmt.Printf("uint256 constant vk_ql_com_y = %s;\n", vk.Ql.Y.String())
+	fmt.Printf("uint256 constant vk_qr_com_x = %s;\n", vk.Qr.X.String())
+	fmt.Printf("uint256 constant vk_qr_com_y = %s;\n", vk.Qr.Y.String())
+	fmt.Printf("uint256 constant vk_qm_com_x = %s;\n", vk.Qm.X.String())
+	fmt.Printf("uint256 constant vk_qm_com_y = %s;\n", vk.Qm.Y.String())
+	fmt.Printf("uint256 constant vk_qo_com_x = %s;\n", vk.Qo.X.String())
+	fmt.Printf("uint256 constant vk_qo_com_y = %s;\n", vk.Qo.Y.String())
+	fmt.Printf("uint256 constant vk_qk_com_x = %s;\n", vk.Qk.X.String())
+	fmt.Printf("uint256 constant vk_qk_com_y = %s;\n", vk.Qk.Y.String())
+	fmt.Printf("uint256 constant vk_s1_com_x = %s;\n", vk.S[0].X.String())
+	fmt.Printf("uint256 constant vk_s1_com_y = %s;\n", vk.S[0].Y.String())
+	fmt.Printf("uint256 constant vk_s2_com_x = %s;\n", vk.S[1].X.String())
+	fmt.Printf("uint256 constant vk_s2_com_y = %s;\n", vk.S[1].Y.String())
+	fmt.Printf("uint256 constant vk_s3_com_x = %s;\n", vk.S[2].X.String())
+	fmt.Printf("uint256 constant vk_s3_com_y = %s;\n", vk.S[2].Y.String())
+
+	fmt.Printf("uint256 constant vk_coset_shift = 5;\n")
+
+	fmt.Printf("uint256 constant vk_selector_commitments_commit_api_0_x = %s;\n", vk.Qcp.X.String())
+	fmt.Printf("uint256 constant vk_selector_commitments_commit_api_0_y = %s;\n", vk.Qcp.Y.String())
+
+	fmt.Printf("uint256 constant g2_srs_1_x_0 = %s;\n", vk.Kzg.G2[1].X.A1.String())
+	fmt.Printf("uint256 constant g2_srs_1_x_1 = %s;\n", vk.Kzg.G2[1].X.A0.String())
+	fmt.Printf("uint256 constant g2_srs_1_y_0 = %s;\n", vk.Kzg.G2[1].Y.A1.String())
+	fmt.Printf("uint256 constant g2_srs_1_y_1 = %s;\n", vk.Kzg.G2[1].Y.A0.String())
+
+	fmt.Println("function load_vk_commitments_indices_commit_api(uint256[] memory v)")
+	fmt.Println("internal view {")
+	fmt.Println("\tassembly {")
+	fmt.Println("\tlet _v := add(v, 0x20)")
+	for i := 0; i < len(vk.CommitmentConstraintIndexes); i++ {
+		fmt.Printf("\tmstore(_v, %d)\n", vk.CommitmentConstraintIndexes[i])
+		fmt.Println("\t_v := add(_v, 0x20)")
+	}
+	fmt.Println("\t}")
+	fmt.Println("}")
+
+	fmt.Printf("uint256 constant vk_nb_commitments_commit_api = %d;\n", len(vk.CommitmentConstraintIndexes))
+
 }
 
 func serialiseProof(proof bn254plonk.Proof) []byte {
@@ -232,29 +286,30 @@ func main() {
 	var proof bn254plonk.Proof
 	var vk bn254plonk.VerifyingKey
 
+	// proof, vk = getVkProofCommitmentCircuit()
+	// wproof, err := os.Create("proof.commit")
+	// checkError(err)
+	// _, err = proof.WriteRawTo(wproof)
+	// checkError(err)
+	// wvk, err := os.Create("vk.commit")
+	// checkError(err)
+	// _, err = vk.WriteRawTo(wvk)
+	// checkError(err)
+	// wproof.Close()
+	// wvk.Close()
+
 	rproof, err := os.Open("proof.commit")
 	checkError(err)
 	_, err = proof.ReadFrom(rproof)
 	checkError(err)
-
 	rvk, err := os.Open("vk.commit")
 	checkError(err)
 	_, err = vk.ReadFrom(rvk)
 	checkError(err)
-
 	rproof.Close()
 	rvk.Close()
 
-	vk.KZGSRS = new(kzg.SRS)
-	vk.KZGSRS.G1 = make([]bn254.G1Affine, 1)
-	_, _, vk.KZGSRS.G1[0], vk.KZGSRS.G2[0] = bn254.Generators()
-	vk.KZGSRS.G2[1].X.A0.SetString("3861286923073220011793349409046889289349533020715526625969101603056608090795")
-	vk.KZGSRS.G2[1].X.A1.SetString("4777846902900565418590449384753263717909657903692016614099552076160357595620")
-	vk.KZGSRS.G2[1].Y.A0.SetString("21022748302362729781528857183979865986597752242747307653138221198529458362155")
-	vk.KZGSRS.G2[1].Y.A1.SetString("16406754891999554747479650379038048271643900448173543122927661446988296543616")
-
-	vk.CommitmentInfo.CommitmentIndex = 3
-	vk.CommitmentInfo.Committed = []int{1}
+	// printvk(vk)
 
 	var witness commitmentCircuit
 	witness.X = [3]frontend.Variable{3, 4, 5}
@@ -264,17 +319,15 @@ func main() {
 	witnessPublic, err := witnessFull.Public()
 	checkError(err)
 
-	err = plonk.Verify(&proof, &vk, witnessPublic)
-	checkError(err)
+	// err = plonk.Verify(&proof, &vk, witnessPublic)
+	// checkError(err)
+	plonk.Verify(&proof, &vk, witnessPublic)
 
 	// Interact with the contract
 	auth, err = getTransactionOpts(privateKey, auth, client)
 	checkError(err)
 
-	// _, err = instance.TestPlonkVanilla(auth)
-	// checkError(err)
-	// client.Commit()
-
+	// fmt.Println(proof.PI2.String())
 	pi := make([]*big.Int, 3)
 	pi[0] = big.NewInt(6)
 	pi[1] = big.NewInt(7)
