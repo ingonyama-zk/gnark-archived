@@ -187,7 +187,7 @@ library PlonkVerifier {
   uint256 constant state_gamma_kzg = 0x220;
 
   uint256 constant state_success = 0x240;
-  uint256 constant state_check_pairing = 0x260;
+  uint256 constant state_check_var = 0x260; // /!\ this slot is used for debugging only
 
 
   uint256 constant state_last_mem = 0x280;
@@ -522,7 +522,7 @@ library PlonkVerifier {
 
       success := mload(add(mem, state_success))
       
-      check := mload(add(mem, state_check_pairing))
+      check := mload(add(mem, state_check_var))
 
       function compute_alpha_square_lagrange() {   
         let state := mload(0x40)
@@ -587,7 +587,7 @@ library PlonkVerifier {
 
         let folded_quotients_y := add(folded_quotients, 0x20)
         mstore(folded_quotients_y, sub(p_mod, mload(folded_quotients_y)))
-        mstore(add(state, state_check_pairing), mload(add(folded_quotients, 0x20)))
+        mstore(add(state, state_check_var), mload(add(folded_quotients, 0x20)))
 
         mstore(mPtr, mload(folded_digests))
         mstore(add(mPtr, 0x20), mload(add(folded_digests, 0x20)))
@@ -605,7 +605,7 @@ library PlonkVerifier {
         // l_success := true
         mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
         // mstore(add(state, state_success), l_success)
-        // mstore(add(state, state_check_pairing), mload(mPtr))
+        // mstore(add(state, state_check_var), mload(mPtr))
       }
 
       // at this stage the state of mPtr is the same as in compute_gamma
@@ -626,7 +626,7 @@ library PlonkVerifier {
 
         point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0x80), acc_gamma, mPtrOffset)
         fr_acc_mul(add(state, state_folded_claimed_values), add(aproof, proof_linearised_polynomial_at_zeta), acc_gamma)
-        mstore(add(state, state_check_pairing), acc_gamma)
+        mstore(add(state, state_check_var), acc_gamma)
         
         acc_gamma := mulmod(acc_gamma, l_gamma_kzg, r_mod)
         point_acc_mul(add(state, state_folded_digests_x), add(mPtr,0xc0), acc_gamma, mPtrOffset)
