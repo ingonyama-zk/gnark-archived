@@ -1,4 +1,6 @@
-pragma solidity ^0.8.0;
+package tmpl
+
+const solidityVerifier = `pragma solidity ^0.8.0;
 
 pragma experimental ABIEncoderV2;
 
@@ -9,60 +11,49 @@ library PlonkVerifier {
   using Utils for *;
   uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
   uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
-  
-  uint256 constant g2_srs_0_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
-  uint256 constant g2_srs_0_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
-  uint256 constant g2_srs_0_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
-  uint256 constant g2_srs_0_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
-  
-  uint256 constant g2_srs_1_x_0 = 5987032930465986751677788258457275235592844890024017329734654198813789727500;
-  uint256 constant g2_srs_1_x_1 = 18306117755333147068919303614328923046780898933410083152543914629703949261668;
-  uint256 constant g2_srs_1_y_0 = 11692855542328881918522288375063868460182661682164612794177339100398142379443;
-  uint256 constant g2_srs_1_y_1 = 18102730335794051253670905957812290933296582835673402641686208837224956284705;
-  
+  {{ range $index, $element := .Kzg.G2 }}
+  uint256 constant g2_srs_{{ $index }}_x_0 = {{ (fpptr $element.X.A1).String }};
+  uint256 constant g2_srs_{{ $index }}_x_1 = {{ (fpptr $element.X.A0).String }};
+  uint256 constant g2_srs_{{ $index }}_y_0 = {{ (fpptr $element.Y.A1).String }};
+  uint256 constant g2_srs_{{ $index }}_y_1 = {{ (fpptr $element.Y.A0).String }};
+  {{ end }}
   // ----------------------- vk ---------------------
-  uint256 constant vk_domain_size = 32;
-  uint256 constant vk_inv_domain_size = 21204235282094297871551205565717985242031228012903033270457635305745314480129;
-  uint256 constant vk_omega = 4419234939496763621076330863786513495701855246241724391626358375488475697872;
-  uint256 constant vk_ql_com_x = 7752538920160660347370994796524233107934624312766306101921854583927820577235;
-  uint256 constant vk_ql_com_y = 1107374554100669128296961301805466401541551933512401599904931289924402327311;
-  uint256 constant vk_qr_com_x = 13945447512136385571688118622329991522391328886462557864006692603267524081369;
-  uint256 constant vk_qr_com_y = 11575888263542418026291450520684065740943441479235779770978552934082554143782;
-  uint256 constant vk_qm_com_x = 11789904677618433827714734065336597358394163287733258822216432268435298725746;
-  uint256 constant vk_qm_com_y = 4383997247995540272757914201522496696451142905240310310099577800859688515014;
-  uint256 constant vk_qo_com_x = 13945447512136385571688118622329991522391328886462557864006692603267524081369;
-  uint256 constant vk_qo_com_y = 10312354608296857195954955224573209347752869678062043891710484960562672064801;
-  uint256 constant vk_qk_com_x = 11789904677618433827714734065336597358394163287733258822216432268435298725746;
-  uint256 constant vk_qk_com_y = 17504245623843734949488491543734778392245168252057513352589460093785537693569;
-  
-  uint256 constant vk_s1_com_x = 13000949911414625420377452495437454980075125739982904094246318955296429789042;
-  uint256 constant vk_s1_com_y = 11366275715856714946911384831712404429734337653729042808556770779911986961192;
-  
-  uint256 constant vk_s2_com_x = 4415335963773177210200443234044021751998383603553717694171700096509252833158;
-  uint256 constant vk_s2_com_y = 8133032545423717871422113391378590995751933092741720602571998879681929061954;
-  
-  uint256 constant vk_s3_com_x = 21518960652096985545327514575898772190219924829740751727373370800422772739273;
-  uint256 constant vk_s3_com_y = 2020499126982207340595026074001655648006396575233055097444591965603623459296;
-  
+  uint256 constant vk_domain_size = {{ .Size }};
+  uint256 constant vk_inv_domain_size = {{ (frptr .SizeInv).String }};
+  uint256 constant vk_omega = {{ (frptr .Generator).String }};
+  uint256 constant vk_ql_com_x = {{ (fpptr .Ql.X).String }};
+  uint256 constant vk_ql_com_y = {{ (fpptr .Ql.Y).String }};
+  uint256 constant vk_qr_com_x = {{ (fpptr .Qr.X).String }};
+  uint256 constant vk_qr_com_y = {{ (fpptr .Qr.Y).String }};
+  uint256 constant vk_qm_com_x = {{ (fpptr .Qm.X).String }};
+  uint256 constant vk_qm_com_y = {{ (fpptr .Qm.Y).String }};
+  uint256 constant vk_qo_com_x = {{ (fpptr .Qo.X).String }};
+  uint256 constant vk_qo_com_y = {{ (fpptr .Qo.Y).String }};
+  uint256 constant vk_qk_com_x = {{ (fpptr .Qk.X).String }};
+  uint256 constant vk_qk_com_y = {{ (fpptr .Qk.Y).String }};
+  {{ range $index, $element := .S }}
+  uint256 constant vk_s{{ inc $index }}_com_x = {{ (fpptr $element.X).String }};
+  uint256 constant vk_s{{ inc $index }}_com_y = {{ (fpptr $element.Y).String }};
+  {{ end }}
   uint256 constant vk_coset_shift = 5;
   
   // TODO wait for the multi commit eval to auto generate the loop
-  uint256 constant vk_selector_commitments_commit_api_0_x = 10045906381815170582502834633065918076444155805308079208986288037639912173343;
-  uint256 constant vk_selector_commitments_commit_api_0_y = 11541600938408197866151735248838232914562038234736336872708183341369320456722;
+  uint256 constant vk_selector_commitments_commit_api_0_x = {{ (fpptr .Qcp.X).String }};
+  uint256 constant vk_selector_commitments_commit_api_0_y = {{ (fpptr .Qcp.Y).String }};
 
-  
+  {{ if (gt (len .CommitmentConstraintIndexes) 0 )}}
   function load_vk_commitments_indices_commit_api(uint256[] memory v)
   internal view {
     assembly {
     let _v := add(v, 0x20)
-    
-    mstore(_v, 3)
+    {{ range .CommitmentConstraintIndexes }}
+    mstore(_v, {{ . }})
     _v := add(_v, 0x20)
-    
+    {{ end }}
     }
   }
-  
-  uint256 constant vk_nb_commitments_commit_api = 1;
+  {{ end }}
+  uint256 constant vk_nb_commitments_commit_api = {{ len .CommitmentConstraintIndexes }};
 
   // ------------------------------------------------
 
@@ -648,12 +639,12 @@ library PlonkVerifier {
         mstore(add(mPtr,0x1c0), vk_s2_com_x)
         mstore(add(mPtr,0x1e0), vk_s2_com_y)
         
-        
+        {{ range $index, $element := .CommitmentConstraintIndexes }}
         let offset := 0x200
-        mstore(add(mPtr,offset), vk_selector_commitments_commit_api_0_x)
-        mstore(add(mPtr,add(offset, 0x20)), vk_selector_commitments_commit_api_0_y)
+        mstore(add(mPtr,offset), vk_selector_commitments_commit_api_{{ $index }}_x)
+        mstore(add(mPtr,add(offset, 0x20)), vk_selector_commitments_commit_api_{{ $index }}_y)
         offset := add(offset, 0x40)
-        
+        {{ end }}
 
         mstore(add(mPtr, offset), mload(add(aproof, proof_quotient_polynomial_at_zeta)))
         mstore(add(mPtr, add(offset, 0x20)), mload(add(aproof, proof_linearised_polynomial_at_zeta)))
@@ -885,3 +876,4 @@ library PlonkVerifier {
   }
 
 }
+`

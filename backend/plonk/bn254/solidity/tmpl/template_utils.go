@@ -1,4 +1,6 @@
+package tmpl
 
+const utils = `
 // It has not been audited and is provided as-is, we make no guarantees or warranties to its safety and reliability. 
 // 
 // According to https://eprint.iacr.org/archive/2019/953/1585767119.pdf
@@ -85,3 +87,4 @@ library Utils {
 
 }
 
+`

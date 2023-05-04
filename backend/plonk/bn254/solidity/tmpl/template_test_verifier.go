@@ -1,4 +1,6 @@
+package tmpl
 
+const solidityTestVerifier = `
 
 pragma solidity ^0.8.0;
     
@@ -63,35 +65,35 @@ contract TestVerifier {
 
         Proof memory proof;
 
-        proof.proof_l_com_x = 9961527895649042447746237286019755744616063958222988704110250136724157271563;
-        proof.proof_l_com_y = 3763853458820893624836626172621935293091643204367462431299344778633409793851;
-        proof.proof_r_com_x = 11639323135504771147463504874127032317355460801396045882521334514299314373530;
-        proof.proof_r_com_y = 4546125450241775539513437257799882232053370272638111440459311011543217543654;
-        proof.proof_o_com_x = 6951885478365451859633218033534177953531151179025720808412664456507849098318;
-        proof.proof_o_com_y = 10078316954566323850919294801300171612334236346594013740379896447714658364603;
-        proof.proof_h_0_x = 19343392751150103637175769804055262957929391960949586454313351476870597441267;
-        proof.proof_h_0_y = 15040021422290546131503927397701891874391251462368874123165081810335115946049;
-        proof.proof_h_1_x = 6072989367096230458908488395188736698175608514486238412835812913582675193758;
-        proof.proof_h_1_y = 1198862419377885759585537527801117909049414401526055843368139216458547894568;
-        proof.proof_h_2_x = 1801257928055081756685845788175802334634386062611058316056184007883883842895;
-        proof.proof_h_2_y = 15182044514430459993950051213783441555565616294069564570875152439098945883109;
-        proof.proof_l_at_zeta = 3834311582724048913125247236908815424117666083750820736046136261523421388600;
-        proof.proof_r_at_zeta = 8058392488012205352731755808897826179529961008792643371319157933207453954152;
-        proof.proof_o_at_zeta = 16098047569238095182887288016201967471235427466557824783045483920003553117095;
-        proof.proof_s1_at_zeta = 8357163133014564328792229968897199513343420768827196655924103616295848055563;
-        proof.proof_s2_at_zeta = 11662601929308876147251795155385177276775281386266970781388372264216673487256;
-        proof.proof_grand_product_commitment_x = 2373492145219130964546926031479330683532199534199352165119470130540126770141;
-        proof.proof_grand_product_commitment_y = 19647164456434786549067972933948789240695088178892620345756016286354683500024;
-        proof.proof_grand_product_at_zeta_omega = 4447307470839761674123221436625847386073121481521339495027310118699332465756;
-        proof.proof_quotient_polynomial_at_zeta = 15854527596584854931439982985827444460810034506516587154914105651319805188796;
-        proof.proof_linearised_polynomial_at_zeta = 7809061422914766373647062757126101099950513928375208932199539582179780378144;
-        proof.proof_batch_opening_at_zeta_x = 15543895048600230990087821789984347474569502028927455845259937790603044752031;
-        proof.proof_batch_opening_at_zeta_y = 19159835962845394813006687165002283311180895679579777313909259356041500892243;
-        proof.proof_opening_at_zeta_omega_x = 8843808738930381635526231444509951037743945772055891399170668205157713018674;
-		proof.proof_opening_at_zeta_omega_y = 19946455830740339450544117348780746817776336373415577733942888673495414022398;
-        proof.proof_openings_selector_commit_api_at_zeta = 2638827982992591344468894412825174792212521718536770229047896803748603401550   ;
-        proof.proof_selector_commit_api_commitment_x = 6880245239814378219702152162766819134805106735294751388859945517685478108082;
-        proof.proof_selector_commit_api_commitment_y = 20470852159689608083980220583992671579924463595673688210282102382870132575092;
+        proof.proof_l_com_x = {{ (fpptr (index .LRO 0).X ).String }};
+        proof.proof_l_com_y = {{ (fpptr (index .LRO 0).Y ).String }};
+        proof.proof_r_com_x = {{ (fpptr (index .LRO 1).X ).String }};
+        proof.proof_r_com_y = {{ (fpptr (index .LRO 1).Y ).String }};
+        proof.proof_o_com_x = {{ (fpptr (index .LRO 2).X ).String }};
+        proof.proof_o_com_y = {{ (fpptr (index .LRO 2).Y ).String }};
+        proof.proof_h_0_x = {{ (fpptr (index .H 0).X).String }};
+        proof.proof_h_0_y = {{ (fpptr (index .H 0).Y).String }};
+        proof.proof_h_1_x = {{ (fpptr (index .H 1).X).String }};
+        proof.proof_h_1_y = {{ (fpptr (index .H 1).Y).String }};
+        proof.proof_h_2_x = {{ (fpptr (index .H 2).X).String }};
+        proof.proof_h_2_y = {{ (fpptr (index .H 2).Y).String }};
+        proof.proof_l_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 2)).String }};
+        proof.proof_r_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 3)).String }};
+        proof.proof_o_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 4)).String }};
+        proof.proof_s1_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 5)).String }};
+        proof.proof_s2_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 6)).String }};
+        proof.proof_grand_product_commitment_x = {{ (fpptr .Z.X).String }};
+        proof.proof_grand_product_commitment_y = {{ (fpptr .Z.Y).String }};
+        proof.proof_grand_product_at_zeta_omega = {{ (frptr .ZShiftedOpening.ClaimedValue).String }};
+        proof.proof_quotient_polynomial_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 0)).String }};
+        proof.proof_linearised_polynomial_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 1)).String }};
+        proof.proof_batch_opening_at_zeta_x = {{ (fpptr .BatchedProof.H.X).String }};
+        proof.proof_batch_opening_at_zeta_y = {{ (fpptr .BatchedProof.H.Y).String }};
+        proof.proof_opening_at_zeta_omega_x = {{ (fpptr .ZShiftedOpening.H.X).String }};
+		proof.proof_opening_at_zeta_omega_y = {{ (fpptr .ZShiftedOpening.H.Y).String }};
+        proof.proof_openings_selector_commit_api_at_zeta = {{ (frptr (index .BatchedProof.ClaimedValues 7)).String }}   ;
+        proof.proof_selector_commit_api_commitment_x = {{ (fpptr .PI2.X).String }};
+        proof.proof_selector_commit_api_commitment_y = {{ (fpptr .PI2.Y).String }};
 
         bytes memory res;
         res = abi.encodePacked(
@@ -145,14 +147,10 @@ contract TestVerifier {
 
     function test_verifier() public {
 
-        uint256[] memory pi = new uint256[](3);
-        
-        pi[0] = 6;
-        
-        pi[1] = 7;
-        
-        pi[2] = 8;
-        
+        uint256[] memory pi = new uint256[]({{ len .Pi }});
+        {{ range $index, $element :=  .Pi }}
+        pi[{{ $index }}] = {{ (frptr $element).String }};
+        {{ end }}
 
         bytes memory proof = get_proof();
 
@@ -162,3 +160,4 @@ contract TestVerifier {
     }
 
 }
+`
