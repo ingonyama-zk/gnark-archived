@@ -40,7 +40,7 @@ library PlonkVerifier {
   uint256 constant g2_srs_1_y_0 = 1946377645007782177688890134200631186942441417746339208330323427379738402474;
   uint256 constant g2_srs_1_y_1 = 18904620486316843014406362651343937260381854504159133554107313655509512827599;
   function load_vk_commitments_indices_commit_api(uint256[] memory v)
-  internal view {
+  internal pure {
     assembly {
     let _v := add(v, 0x20)
     mstore(_v, 3)
@@ -48,58 +48,6 @@ library PlonkVerifier {
     }
   }
   uint256 constant vk_nb_commitments_commit_api = 1;
-
-  // uint256 constant r_mod = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-  // uint256 constant p_mod = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
-
-  // uint256 constant g2_srs_0_x_0 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
-  // uint256 constant g2_srs_0_x_1 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
-  // uint256 constant g2_srs_0_y_0 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
-  // uint256 constant g2_srs_0_y_1 = 8495653923123431417604973247489272438418190587263600148770280649306958101930;
-
-  // // ----------------------- vk ---------------------
-
-  // uint256 constant vk_domain_size = 32;
-  // uint256 constant vk_inv_domain_size = 21204235282094297871551205565717985242031228012903033270457635305745314480129;
-  // uint256 constant vk_omega = 4419234939496763621076330863786513495701855246241724391626358375488475697872;
-  // uint256 constant vk_ql_com_x = 3249492299937356830250489011041180308067992016591401527068121784106989719648;
-  // uint256 constant vk_ql_com_y = 10459965615643388455781136436726437288800547058370943251873623010731177440661;
-  // uint256 constant vk_qr_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
-  // uint256 constant vk_qr_com_y = 21702499139579688323831199788191067119894864133780232136805753631080002427269;
-  // uint256 constant vk_qm_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
-  // uint256 constant vk_qm_com_y = 17892566681051922084336151301309366102531970850688837636319063607093137053627;
-  // uint256 constant vk_qo_com_x = 12510476613922141136476828275709042037770171239066681610748147345655672163851;
-  // uint256 constant vk_qo_com_y = 185743732259586898415205957066207968801447023517591525883284263565223781314;
-  // uint256 constant vk_qk_com_x = 14953002130617700035755035451150408651119074291254331128989112575148233333491;
-  // uint256 constant vk_qk_com_y = 3995676190787353137910254443947908986164340306608986026369974287552089154956;
-  // uint256 constant vk_s1_com_x = 21855018542748430565529761638971558125245342907512256948393636927196567938581;
-  // uint256 constant vk_s1_com_y = 11712367707713868753009749003773415568950091810241040629437353992390346924664;
-  // uint256 constant vk_s2_com_x = 17771334109737095158037840313408192145908096951666120454569319380122548644876;
-  // uint256 constant vk_s2_com_y = 1557548382852739357942435662406820815086929855797636868167313245414326520716;
-  // uint256 constant vk_s3_com_x = 3042622247313413937841956962385471739016337091363862127586520834001367730368;
-  // uint256 constant vk_s3_com_y = 11237012146990418046605498478831176936003562652049794077037238123223985118834;
-
-  // uint256 constant vk_coset_shift = 5;
-
-  // uint256 constant vk_selector_commitments_commit_api_0_x = 6072894980673347906024769411958097208049504128219463716820120075337948200814;
-  // uint256 constant vk_selector_commitments_commit_api_0_y = 19560123544018144421880384701499189813392268921297788713816469086064585937291;
-
-  // function load_vk_commitments_indices_commit_api(uint256[] memory v)
-  // internal view {
-  //   assembly {
-  //     let _v := add(v, 0x20)
-  //     mstore(_v, 3)
-  //   }
-  // }
-
-  // uint256 constant g2_srs_1_x_0 = 4777846902900565418590449384753263717909657903692016614099552076160357595620;
-  // uint256 constant g2_srs_1_y_0 = 3861286923073220011793349409046889289349533020715526625969101603056608090795;
-  // uint256 constant g2_srs_1_x_1 = 16406754891999554747479650379038048271643900448173543122927661446988296543616;
-  // uint256 constant g2_srs_1_y_1 = 21022748302362729781528857183979865986597752242747307653138221198529458362155;
-
-  // uint256 constant vk_nb_commitments_commit_api = 1;
-
-  // ------------------------------------------------
 
   // offset proof
   uint256 constant proof_l_com_x = 0x20;
@@ -195,7 +143,7 @@ library PlonkVerifier {
   event PrintUint256(uint256 a);
 
   function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
-  internal returns(uint256, uint256, uint256, uint256) {
+  internal view returns(uint256, uint256, uint256, uint256) {
 
     uint256 gamma;
     uint256 beta;
@@ -317,7 +265,7 @@ library PlonkVerifier {
   }
 
   function load_wire_commitments_commit_api(uint256[] memory wire_commitments, bytes memory proof)
-  internal {
+  internal pure {
     assembly {
       let w := add(wire_commitments, 0x20)
       let p := add(proof, proof_openings_selector_commit_api_at_zeta)
@@ -335,7 +283,7 @@ library PlonkVerifier {
   }
 
   function compute_ith_lagrange_at_z(uint256 zeta, uint256 i) 
-  internal returns (uint256) {
+  internal view returns (uint256) {
 
     uint256 res;
     assembly {
@@ -370,7 +318,7 @@ library PlonkVerifier {
         bytes memory proof,
         uint256[] memory public_inputs,
         uint256 zeta
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
 
       // evaluation of Z=Xⁿ⁻¹ at ζ
       // uint256 zeta_power_n_minus_one = Fr.pow(zeta, vk_domain_size);
@@ -487,7 +435,7 @@ library PlonkVerifier {
     }
 
   function Verify(bytes memory proof, uint256[] memory public_inputs) 
-  internal returns(bool) {
+  internal view returns(bool) {
 
     uint256 gamma;
     uint256 beta;
@@ -550,8 +498,9 @@ library PlonkVerifier {
         let state := mload(0x40)
         let mPtr := add(state, state_last_mem)
 
-        // TODO use keccak here
-        let random := 3
+        // here the random is not a challenge, hence no need to use Fiat Shamir, we just
+        // need an unpredictible result.
+        let random := mod(keccak256(state, 0x20), r_mod)
 
         let folded_quotients := mPtr
         mPtr := add(folded_quotients, 0x40)
@@ -905,13 +854,6 @@ library PlonkVerifier {
         res := mload(mPtr)
       }
     }
-    // success = true;
-    // if (success ==true){
-    //   emit PrintUint256(1);
-    // }
-    // if (success==false){
-    //   emit PrintUint256(0);
-    // }
 
     return success;
 

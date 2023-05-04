@@ -12,7 +12,7 @@ library Utils {
     *      https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-06#section-5
     *      https://tools.ietf.org/html/rfc8017#section-4.1 (I2OSP/O2ISP)
     */
-    function expand_msg(uint256 x, uint256 y) public returns(uint8[48] memory res){
+    function expand_msg(uint256 x, uint256 y) public pure returns(uint8[48] memory res){
     
         string memory dst = "BSB22-Plonk";
 
@@ -55,7 +55,7 @@ library Utils {
    * @dev cf https://tools.ietf.org/html/draft-irtf-cfrg-hash-to-curve-06#section-5.2
    * corresponds to https://github.com/ConsenSys/gnark-crypto/blob/develop/ecc/bn254/fr/element.go
    */
-    function hash_fr(uint256 x, uint256 y) internal returns(uint256 res) {
+    function hash_fr(uint256 x, uint256 y) internal pure returns(uint256 res) {
 
         // interpret a as a bigEndian integer and reduce it mod r
         uint8[48] memory xmsg = expand_msg(x, y);
