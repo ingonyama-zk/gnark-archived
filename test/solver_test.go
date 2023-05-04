@@ -1,7 +1,12 @@
 package test
 
 import (
+	"bytes"
 	"fmt"
+	cs "github.com/consensys/gnark/constraint/tinyfield"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"math/big"
 	"reflect"
@@ -280,4 +285,35 @@ func init() {
 
 	builders[0] = r1cs.NewBuilder
 	builders[1] = scs.NewBuilder
+}
+
+func TestCBorError(t *testing.T) {
+	tc := circuits.Circuits["or"]
+	ccs, err := frontend.Compile(tinyfield.Modulus(), scs.NewBuilder, tc.Circuit)
+	assert.NoError(t, err)
+
+	writer := bytes.NewBuffer(make([]byte, 0))
+	_, err = ccs.WriteTo(writer)
+	assert.NoError(t, err)
+
+	var ccsBack cs.SparseR1CS
+	_, err = ccsBack.ReadFrom(bytes.NewReader(writer.Bytes()))
+	assert.NoError(t, err)
+
+	diff := cmp.Diff(ccs, &ccsBack, cmpopts.IgnoreFields(cs.SparseR1CS{},
+		diffIgnore...,
+	))
+	assert.Equal(t, "", diff)
+}
+
+var diffIgnore = []string{
+	"System.SymbolTable.mFunctions",
+	"System.SymbolTable.mLocations",
+	"System.q",
+	"System.bitLen",
+	"System.lbWireLevel",
+	"System.lbOutputs",
+	"System.genericHint",
+	"CoeffTable.mCoeffs",
+	"field",
 }
