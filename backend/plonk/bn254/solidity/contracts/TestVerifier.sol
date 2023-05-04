@@ -10,8 +10,8 @@ contract TestVerifier {
 
     function test_verifier(bytes memory proof, uint256[] memory public_inputs) public {
 
-        PlonkVerifier.Verify(proof, public_inputs);
-
+        bool check_proof = PlonkVerifier.Verify(proof, public_inputs);
+        require(check_proof, "verification failed!");
     }
 
 

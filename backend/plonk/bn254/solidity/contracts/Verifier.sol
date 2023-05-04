@@ -192,10 +192,7 @@ library PlonkVerifier {
 
   uint256 constant state_last_mem = 0x280;
 
-  event PrintBool(bool a);
   event PrintUint256(uint256 a);
-  event PrintBytes(bytes a);
-  event PrintBytes32(bytes32 a);
 
   function derive_gamma_beta_alpha_zeta(bytes memory proof, uint256[] memory public_inputs)
   internal returns(uint256, uint256, uint256, uint256) {
@@ -525,7 +522,7 @@ library PlonkVerifier {
 
       success := mload(add(mem, state_success))
       
-      check := mload(add(mem, state_gamma_kzg))
+      check := mload(add(mem, state_check_pairing))
 
       function compute_alpha_square_lagrange() {   
         let state := mload(0x40)
@@ -553,6 +550,7 @@ library PlonkVerifier {
         let state := mload(0x40)
         let mPtr := add(state, state_last_mem)
 
+        // TODO use keccak here
         let random := 3
 
         let folded_quotients := mPtr
@@ -589,7 +587,7 @@ library PlonkVerifier {
 
         let folded_quotients_y := add(folded_quotients, 0x20)
         mstore(folded_quotients_y, sub(p_mod, mload(folded_quotients_y)))
-        mstore(add(state, state_check_pairing), mload(folded_digests))
+        mstore(add(state, state_check_pairing), mload(add(folded_quotients, 0x20)))
 
         mstore(mPtr, mload(folded_digests))
         mstore(add(mPtr, 0x20), mload(add(folded_digests, 0x20)))
@@ -605,7 +603,7 @@ library PlonkVerifier {
         mstore(add(mPtr, 0x160), g2_srs_1_y_1)
         let l_success := staticcall(sub(gas(), 2000),8,mPtr,0x180,0x00,0x20)
         // l_success := true
-        // mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
+        mstore(add(state, state_success), and(l_success,mload(add(state, state_success))))
         // mstore(add(state, state_success), l_success)
         // mstore(add(state, state_check_pairing), mload(mPtr))
       }
@@ -712,7 +710,6 @@ library PlonkVerifier {
         size_input := add(0x5, mul(size_input, 0x20)) // size in bytes: 15*32 bytes + 5 bytes for gamma
         pop(staticcall(sub(gas(), 2000), 0x2, add(mPtr,start_input), size_input, add(state, state_gamma_kzg), 0x20))
         mstore(add(state, state_gamma_kzg), mod(mload(add(state, state_gamma_kzg)), r_mod))
-
       }
 
       function compute_commitment_linearised_polynomial_ec(aproof, s1, s2) {
@@ -908,10 +905,15 @@ library PlonkVerifier {
         res := mload(mPtr)
       }
     }
+    // success = true;
+    // if (success ==true){
+    //   emit PrintUint256(1);
+    // }
+    // if (success==false){
+    //   emit PrintUint256(0);
+    // }
 
-    emit PrintUint256(check);
-    // emit PrintBool(success);
-    // return true;
+    return success;
 
   }
 
