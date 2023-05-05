@@ -247,6 +247,10 @@ func (bf *BinaryField[T]) Lrot(a T, c int) T {
 	return bf.xxxFromVar(res)
 }
 
+func (bf *BinaryField[T]) Lrot2(a T, c int) T {
+
+}
+
 func (bf *BinaryField[T]) Rshift(a T, c int) T {
 	shiftBl := c / 8
 	shiftBt := c % 8
