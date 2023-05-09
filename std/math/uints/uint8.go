@@ -234,22 +234,31 @@ func (bf *BinaryField[T]) Add(a ...T) T {
 	return res
 }
 
-// TODO: implement Rrot?
-
 func (bf *BinaryField[T]) Lrot(a T, c int) T {
-	// TODO: think about it bit more. Right now just want to get working.
-	v := bf.xxxToVar(a)
-	b := len(a) * 8
-	res := make([]frontend.Variable, b)
-	for i := range res {
-		res[i] = v[(i-c+b)%b]
+	l := len(a)
+	if c < 0 {
+		c = l*8 + c
 	}
-	return bf.xxxFromVar(res)
-}
-
-func (bf *BinaryField[T]) Lrot2(a T, c int) T {
 	shiftBl := c / 8
 	shiftBt := c % 8
+	revShiftBt := 8 - shiftBt
+	if revShiftBt == 8 {
+		revShiftBt = 0
+	}
+	partitioned := make([][2]frontend.Variable, l)
+	for i := range partitioned {
+		lower, upper := bitslice.Partition(bf.api, a[i].Val, uint(revShiftBt), bitslice.WithNbDigits(8))
+		partitioned[i] = [2]frontend.Variable{lower, upper}
+	}
+	var ret T
+	for i := 0; i < l; i++ {
+		if shiftBt != 0 {
+			ret[(i+shiftBl)%l].Val = bf.api.Add(bf.api.Mul(1<<(shiftBt), partitioned[i][0]), partitioned[(i+l-1)%l][1])
+		} else {
+			ret[(i+shiftBl)%l].Val = partitioned[i][1]
+		}
+	}
+	return ret
 }
 
 func (bf *BinaryField[T]) Rshift(a T, c int) T {

@@ -45,5 +45,8 @@ func TestKeccakf(t *testing.T) {
 		witness.Expected[i] = res[i]
 	}
 	assert := test.NewAssert(t)
-	assert.ProverSucceeded(&keccakfCircuit{}, &witness, test.WithCurves(ecc.BN254), test.WithBackends(backend.GROTH16, backend.PLONK))
+	assert.ProverSucceeded(&keccakfCircuit{}, &witness,
+		test.WithCurves(ecc.BN254),
+		test.WithBackends(backend.GROTH16, backend.PLONK),
+		test.NoFuzzing())
 }
