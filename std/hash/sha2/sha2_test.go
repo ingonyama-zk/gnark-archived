@@ -37,7 +37,7 @@ func (c *sha2Circuit) Define(api frontend.API) error {
 }
 
 func TestSHA2(t *testing.T) {
-	bts := make([]byte, 32)
+	bts := make([]byte, 100)
 	dgst := sha256.Sum256(bts)
 	witness := sha2Circuit{
 		In: uints.NewU8Array(bts),
