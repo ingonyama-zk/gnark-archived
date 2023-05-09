@@ -21,9 +21,6 @@ func (c *lrotCirc) Define(api frontend.API) error {
 		return err
 	}
 	res := uapi.Lrot(c.In, c.Shift)
-	// for i := range res {
-	// 	fmt.Printf("%x %x\n", res[i].Val.(*big.Int), c.Out[i].Val.(uint8))
-	// }
 	uapi.AssertEq(c.Out, res)
 	return nil
 }
@@ -52,34 +49,6 @@ func TestLeftRotation(t *testing.T) {
 	err = test.IsSolved(&lrotCirc{Shift: -11}, &lrotCirc{In: NewU32(0x12345678), Shift: -11, Out: NewU32(bits.RotateLeft32(0x12345678, -11))}, ecc.BN254.ScalarField())
 	assert.NoError(err)
 	err = test.IsSolved(&lrotCirc{Shift: -16}, &lrotCirc{In: NewU32(0x12345678), Shift: -16, Out: NewU32(bits.RotateLeft32(0x12345678, -16))}, ecc.BN254.ScalarField())
-	assert.NoError(err)
-}
-
-func TestNegRot(t *testing.T) {
-	t.Log(bits.RotateLeft32(0x12345678, 4), bits.RotateLeft32(0x12345678, -28))
-}
-
-type tofromCirc struct {
-	In frontend.Variable
-}
-
-func (c *tofromCirc) Define(api frontend.API) error {
-	uapi, err := New[U64](api)
-	if err != nil {
-		return err
-	}
-	v := uapi.ValueOf(c.In)
-	vv := uapi.xxxToVar(v)
-	vvv := uapi.xxxFromVar(vv)
-	uapi.AssertEq(v, vvv)
-	return nil
-}
-
-func TestToFromCirc(t *testing.T) {
-	circuit := tofromCirc{}
-	witness := tofromCirc{In: 2305980498363120175}
-	assert := test.NewAssert(t)
-	err := test.IsSolved(&circuit, &witness, ecc.BN254.ScalarField())
 	assert.NoError(err)
 }
 

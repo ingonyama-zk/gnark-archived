@@ -5,7 +5,6 @@ import (
 
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/std/internal/logderivprecomp"
-	"github.com/consensys/gnark/std/math/bits"
 	"github.com/consensys/gnark/std/math/bitslice"
 	"github.com/consensys/gnark/std/rangecheck"
 )
@@ -280,25 +279,6 @@ func (bf *BinaryField[T]) Rshift(a T, c int) T {
 	ret[len(a)-shiftBl-1].Val = partitioned[len(a)-shiftBl-1][1]
 	for i := len(a) - shiftBl; i < len(ret); i++ {
 		ret[i] = NewU8(0)
-	}
-	return ret
-}
-
-func (bf *BinaryField[T]) xxxToVar(a T) []frontend.Variable {
-	vv := bf.ToValue(a)
-	ret := make([]frontend.Variable, len(a)*8)
-	bts := bits.ToBinary(bf.api, vv, bits.WithNbDigits(len(ret)))
-	for i := range ret {
-		ret[i] = bts[i]
-	}
-	return ret
-}
-
-func (bf *BinaryField[T]) xxxFromVar(a []frontend.Variable) T {
-	var ret T
-	for i := 0; i < len(ret); i++ {
-		v := bits.FromBinary(bf.api, a[8*i:8*i+8])
-		ret[i] = U8{Val: v, internal: true}
 	}
 	return ret
 }
