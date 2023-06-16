@@ -18,6 +18,11 @@ package groth16
 
 import (
 	"fmt"
+	"icbn254/curves/bn254"
+	"math/big"
+	"runtime"
+	"time"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	curve "github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -26,9 +31,6 @@ import (
 	"github.com/consensys/gnark/constraint/bn254"
 	"github.com/consensys/gnark/internal/utils"
 	"github.com/consensys/gnark/logger"
-	"math/big"
-	"runtime"
-	"time"
 )
 
 // Proof represents a Groth16 proof that was encoded with a ProvingKey and can be verified
@@ -172,11 +174,14 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, witness fr.Vector, opt backend.ProverC
 	chBs1Done := make(chan error, 1)
 	computeBS1 := func() {
 		<-chWireValuesB
-		if _, err := bs1.MultiExp(pk.G1.B, wireValuesB, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		res, err := MsmBN254GnarkAdapter(pk.G1.B, wireValuesB);
+		if err != nil {
 			chBs1Done <- err
 			close(chBs1Done)
 			return
 		}
+		bs1 = res
+
 		bs1.AddMixed(&pk.G1.Beta)
 		bs1.AddMixed(&deltas[1])
 		chBs1Done <- nil
@@ -185,11 +190,15 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, witness fr.Vector, opt backend.ProverC
 	chArDone := make(chan error, 1)
 	computeAR1 := func() {
 		<-chWireValuesA
-		if _, err := ar.MultiExp(pk.G1.A, wireValuesA, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		//todo
+		res, err := MsmBN254GnarkAdapter(pk.G1.A, wireValuesA);
+		if err != nil {
 			chArDone <- err
 			close(chArDone)
 			return
 		}
+		ar = res
+
 		ar.AddMixed(&pk.G1.Alpha)
 		ar.AddMixed(&deltas[0])
 		proof.Ar.FromJacobian(&ar)
@@ -204,17 +213,25 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, witness fr.Vector, opt backend.ProverC
 		var krs, krs2, p1 curve.G1Jac
 		chKrs2Done := make(chan error, 1)
 		go func() {
-			_, err := krs2.MultiExp(pk.G1.Z, h, ecc.MultiExpConfig{NbTasks: n / 2})
+			//todo
+			res, err := MsmBN254GnarkAdapter(pk.G1.Z, h);
+			if err == nil {
+				krs2 = res
+			}
 			chKrs2Done <- err
 		}()
 
 		// filter the wire values if needed;
 		_wireValues := filter(wireValues, r1cs.CommitmentInfo.PrivateToPublic())
-
-		if _, err := krs.MultiExp(pk.G1.K, _wireValues[r1cs.GetNbPublicVariables():], ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		
+		//todo
+		res, err := MsmBN254GnarkAdapter(pk.G1.K, _wireValues[r1cs.GetNbPublicVariables():]);
+		if err != nil {
 			chKrsDone <- err
 			return
 		}
+		krs = res
+
 		krs.AddMixed(&deltas[2])
 		n := 3
 		for n != 0 {
@@ -247,6 +264,9 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, witness fr.Vector, opt backend.ProverC
 		chKrsDone <- nil
 	}
 
+	/*
+	TODO; later support G2 as it seems we dont support it just yet
+	*/
 	computeBS2 := func() error {
 		// Bs2 (1 multi exp G2 - size = len(wires))
 		var Bs, deltaS curve.G2Jac
@@ -330,13 +350,13 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	c = append(c, padding...)
 	n = len(a)
 
-	domain.FFTInverse(a, fft.DIF)
-	domain.FFTInverse(b, fft.DIF)
-	domain.FFTInverse(c, fft.DIF)
+	a = NttBN254GnarkAdapter(a, true, bn254.DIF, 0)
+	b = NttBN254GnarkAdapter(b, true, bn254.DIF, 0)
+	c = NttBN254GnarkAdapter(c, true, bn254.DIF, 0)
 
-	domain.FFT(a, fft.DIT, true)
-	domain.FFT(b, fft.DIT, true)
-	domain.FFT(c, fft.DIT, true)
+	a = NttBN254GnarkAdapter(a, false, bn254.DIT, 0)
+	b = NttBN254GnarkAdapter(b, false, bn254.DIT, 0)
+	c = NttBN254GnarkAdapter(c, false, bn254.DIT, 0)
 
 	var den, one fr.Element
 	one.SetOne()

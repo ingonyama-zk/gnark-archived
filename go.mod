@@ -5,15 +5,17 @@ go 1.18
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/consensys/bavard v0.1.13
-	github.com/consensys/gnark-crypto v0.9.1
+	github.com/consensys/gnark-crypto v0.11.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904
 	github.com/leanovate/gopter v0.2.9
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.3
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 )
+
+require github.com/bits-and-blooms/bitset v1.5.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -27,5 +29,8 @@ require (
 	golang.org/x/sys v0.5.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	icbn254 v1.0.0
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
+
+replace icbn254 v1.0.0 => /Users/monia/Documents/ingonyama_projects/icicle/goicicle/

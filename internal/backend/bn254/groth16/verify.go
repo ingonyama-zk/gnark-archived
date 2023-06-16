@@ -83,9 +83,12 @@ func Verify(proof *Proof, vk *VerifyingKey, publicWitness fr.Vector) error {
 
 	// compute e(Σx.[Kvk(t)]1, -[γ]2)
 	var kSum curve.G1Jac
-	if _, err := kSum.MultiExp(vk.G1.K[1:], publicWitness, ecc.MultiExpConfig{}); err != nil {
+	res, err := MsmBN254GnarkAdapter(vk.G1.K[1:], publicWitness)
+	if err != nil {
 		return err
 	}
+	kSum = res
+	
 	kSum.AddMixed(&vk.G1.K[0])
 
 	if vk.CommitmentInfo.Is() {
