@@ -25,12 +25,12 @@ require (
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	goicicle v1.0.0
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	icbn254 v1.0.0
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace icbn254 v1.0.0 => /Users/monia/Documents/ingonyama_projects/icicle/goicicle/
+replace goicicle v1.0.0 => /home/miner/monia/icicle/goicicle

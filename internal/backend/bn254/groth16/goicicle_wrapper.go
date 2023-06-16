@@ -1,7 +1,7 @@
 package groth16
 
 import (
-	"icbn254/curves/bn254"
+	"goicicle/curves/bn254"
 
 	curve "github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"

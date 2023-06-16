@@ -18,7 +18,7 @@ package groth16
 
 import (
 	"fmt"
-	"icbn254/curves/bn254"
+	gocurve "goicicle/curves/bn254"
 	"math/big"
 	"runtime"
 	"time"
@@ -350,13 +350,13 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	c = append(c, padding...)
 	n = len(a)
 
-	a = NttBN254GnarkAdapter(a, true, bn254.DIF, 0)
-	b = NttBN254GnarkAdapter(b, true, bn254.DIF, 0)
-	c = NttBN254GnarkAdapter(c, true, bn254.DIF, 0)
+	a = NttBN254GnarkAdapter(a, true, gocurve.DIF, 0)
+	b = NttBN254GnarkAdapter(b, true, gocurve.DIF, 0)
+	c = NttBN254GnarkAdapter(c, true, gocurve.DIF, 0)
 
-	a = NttBN254GnarkAdapter(a, false, bn254.DIT, 0)
-	b = NttBN254GnarkAdapter(b, false, bn254.DIT, 0)
-	c = NttBN254GnarkAdapter(c, false, bn254.DIT, 0)
+	a = NttBN254GnarkAdapter(a, false, gocurve.DIT, 0)
+	b = NttBN254GnarkAdapter(b, false, gocurve.DIT, 0)
+	c = NttBN254GnarkAdapter(c, false, gocurve.DIT, 0)
 
 	var den, one fr.Element
 	one.SetOne()
@@ -374,7 +374,7 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	})
 
 	// ifft_coset
-	domain.FFTInverse(a, fft.DIF, true)
+	a = NttBN254GnarkAdapter(a, true, gocurve.DIF, 0)
 
 	return a
 }
