@@ -57,6 +57,7 @@ func (proof *Proof) CurveID() ecc.ID {
 
 // Prove generates the proof of knowledge of a r1cs with full witness (secret + public part).
 func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...backend.ProverOption) (*Proof, error) {
+	defer TimeTrack(time.Now(), "TOTAL PROOF TIME")
 	opt, err := backend.NewProverConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -176,7 +177,7 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 	chBs1Done := make(chan error, 1)
 	computeBS1 := func() {
 		<-chWireValuesB
-		if _, err := bs1.MultiExp(pk.G1.B, wireValuesB, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		if _, err := MultiExpWrapper(&bs1, pk.G1.B, wireValuesB, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
 			chBs1Done <- err
 			close(chBs1Done)
 			return
@@ -189,7 +190,7 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 	chArDone := make(chan error, 1)
 	computeAR1 := func() {
 		<-chWireValuesA
-		if _, err := ar.MultiExp(pk.G1.A, wireValuesA, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		if _, err := MultiExpWrapper(&ar,pk.G1.A, wireValuesA, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
 			chArDone <- err
 			close(chArDone)
 			return
@@ -209,7 +210,7 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 		chKrs2Done := make(chan error, 1)
 		sizeH := int(pk.Domain.Cardinality - 1) // comes from the fact the deg(H)=(n-1)+(n-1)-n=n-2
 		go func() {
-			_, err := krs2.MultiExp(pk.G1.Z, h[:sizeH], ecc.MultiExpConfig{NbTasks: n / 2})
+			_, err := MultiExpWrapper(&krs2,pk.G1.Z, h[:sizeH], ecc.MultiExpConfig{NbTasks: n / 2})
 			chKrs2Done <- err
 		}()
 
@@ -219,7 +220,7 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 		toRemove = append(toRemove, commitmentInfo.CommitmentIndexes())
 		_wireValues := filterHeap(wireValues[r1cs.GetNbPublicVariables():], r1cs.GetNbPublicVariables(), internal.ConcatAll(toRemove...))
 
-		if _, err := krs.MultiExp(pk.G1.K, _wireValues, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+		if _, err := MultiExpWrapper(&krs,pk.G1.K, _wireValues, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
 			chKrsDone <- err
 			return
 		}
@@ -265,7 +266,7 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 			nbTasks *= 2
 		}
 		<-chWireValuesB
-		if _, err := Bs.MultiExp(pk.G2.B, wireValuesB, ecc.MultiExpConfig{NbTasks: nbTasks}); err != nil {
+		if _, err := G2MultiExpWrapper(&Bs, pk.G2.B, wireValuesB, ecc.MultiExpConfig{NbTasks: nbTasks}); err != nil {
 			return err
 		}
 
@@ -344,13 +345,13 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	c = append(c, padding...)
 	n = len(a)
 
-	domain.FFTInverse(a, fft.DIF)
-	domain.FFTInverse(b, fft.DIF)
-	domain.FFTInverse(c, fft.DIF)
+	FFTInverseWrapper(domain, a, fft.DIF)
+	FFTInverseWrapper(domain, b, fft.DIF)
+	FFTInverseWrapper(domain, c, fft.DIF)
 
-	domain.FFT(a, fft.DIT, fft.OnCoset())
-	domain.FFT(b, fft.DIT, fft.OnCoset())
-	domain.FFT(c, fft.DIT, fft.OnCoset())
+	FFTWrapper(domain, a, fft.DIT, fft.OnCoset())
+	FFTWrapper(domain, b, fft.DIT, fft.OnCoset())
+	FFTWrapper(domain, c, fft.DIT, fft.OnCoset())
 
 	var den, one fr.Element
 	one.SetOne()
@@ -368,7 +369,7 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	})
 
 	// ifft_coset
-	domain.FFTInverse(a, fft.DIF, fft.OnCoset())
+	FFTInverseWrapper(domain,a, fft.DIF, fft.OnCoset())
 
 	return a
 }
