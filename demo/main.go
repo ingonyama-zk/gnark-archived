@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
@@ -38,6 +40,15 @@ func main() {
 	publicWitness, _ := witness.Public()
 
 	// groth16: Prove & Verify
-	proof, _ := groth16.Prove(ccs, pk, witness)
-	groth16.Verify(proof, vk, publicWitness)
+	proof, perr := groth16.Prove(ccs, pk, witness)
+
+	if perr != nil {
+		log.Fatal(perr)
+	}
+
+	err := groth16.Verify(proof, vk, publicWitness)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }

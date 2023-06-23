@@ -17,11 +17,11 @@
 package groth16
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"time"
 
-	icicle "goicicle/curves/bn254"
 	"github.com/consensys/gnark-crypto/ecc"
 	curve "github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
@@ -35,6 +35,7 @@ import (
 	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/internal/utils"
 	"github.com/consensys/gnark/logger"
+	icicle "github.com/ingonyama-zk/icicle/goicicle/curves/bn254"
 )
 
 // Proof represents a Groth16 proof that was encoded with a ProvingKey and can be verified
@@ -196,6 +197,14 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 	chArDone := make(chan error, 1)
 	computeAR1 := func() {
 		<-chWireValuesA
+
+		for _, fruit := range pk.G1.A {
+			// Print the index and value of each fruit
+			if fruit.X.IsZero() {
+				panic(" 0! 0! 0!")
+			}
+		}
+
 		res, err := MsmBN254GnarkAdapter(pk.G1.A, wireValuesA);
 		
 		if err != nil {
@@ -203,7 +212,21 @@ func Prove(r1cs *cs.R1CS, pk *ProvingKey, fullWitness witness.Witness, opts ...b
 			close(chArDone)
 			return
 		}
-		ar = res
+
+		if _, err := ar.MultiExp(pk.G1.A, wireValuesA, ecc.MultiExpConfig{NbTasks: n / 2}); err != nil {
+			chArDone <- err
+			close(chArDone)
+			return
+		}
+
+		isEq := ar.Equal(&res)
+
+		if !isEq {
+			fmt.Printf("%+v\n", ar)
+			fmt.Printf("%+v\n", "sadadsad")
+			fmt.Printf("%+v\n", res)
+		}
+
 		ar.AddMixed(&pk.G1.Alpha)
 		ar.AddMixed(&deltas[0])
 		proof.Ar.FromJacobian(&ar)
@@ -362,13 +385,13 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	c = append(c, padding...)
 	n = len(a)
 
-	a = NttBN254GnarkAdapter(a, true, icicle.DIF, 0)
-	b = NttBN254GnarkAdapter(b, true, icicle.DIF, 0)
-	c = NttBN254GnarkAdapter(c, true, icicle.DIF, 0)
+	a = NttBN254GnarkAdapter(domain, false, a, true, icicle.DIF, 0)
+	b = NttBN254GnarkAdapter(domain, false, b, true, icicle.DIF, 0)
+	c = NttBN254GnarkAdapter(domain, false, c, true, icicle.DIF, 0)
 
-	a = NttBN254GnarkAdapter(a, false, icicle.DIT, 0)
-	b = NttBN254GnarkAdapter(b, false, icicle.DIT, 0)
-	c = NttBN254GnarkAdapter(c, false, icicle.DIT, 0)
+	a = NttBN254GnarkAdapter(domain, true, a, false, icicle.DIT, 0)
+	b = NttBN254GnarkAdapter(domain, true, b, false, icicle.DIT, 0)
+	c = NttBN254GnarkAdapter(domain, true, c, false, icicle.DIT, 0)
 
 	var den, one fr.Element
 	one.SetOne()
@@ -386,7 +409,7 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	})
 
 	// ifft_coset
-	a = NttBN254GnarkAdapter(a, true, icicle.DIF, 0)
+	a = NttBN254GnarkAdapter(domain, true, a, true, icicle.DIF, 0)
 
 	return a
 }
