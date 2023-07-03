@@ -18,9 +18,12 @@ package groth16
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"runtime"
 	"time"
+
+	// "unsafe"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	curve "github.com/consensys/gnark-crypto/ecc/bn254"
@@ -36,6 +39,7 @@ import (
 	"github.com/consensys/gnark/internal/utils"
 	"github.com/consensys/gnark/logger"
 	icicle "github.com/ingonyama-zk/icicle/goicicle/curves/bn254"
+	goicicle "github.com/ingonyama-zk/icicle/goicicle"
 )
 
 // Proof represents a Groth16 proof that was encoded with a ProvingKey and can be verified
@@ -385,13 +389,28 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	c = append(c, padding...)
 	n = len(a)
 
-	a = NttBN254GnarkAdapter(domain, false, a, true, icicle.DIF, 0)
-	b = NttBN254GnarkAdapter(domain, false, b, true, icicle.DIF, 0)
-	c = NttBN254GnarkAdapter(domain, false, c, true, icicle.DIF, 0)
+	om_selector := int(math.Log(float64(n)) / math.Log(2))
+	twiddles_inv_d, twddles_err := icicle.GenerateTwiddles(n, om_selector, true)
+	if twddles_err != nil {
+		fmt.Print(twddles_err)
+	}
 
-	a = NttBN254GnarkAdapter(domain, true, a, false, icicle.DIT, 0)
-	b = NttBN254GnarkAdapter(domain, true, b, false, icicle.DIT, 0)
-	c = NttBN254GnarkAdapter(domain, true, c, false, icicle.DIT, 0)
+	twiddles_d, twddles_err := icicle.GenerateTwiddles(n, om_selector, false)
+	if twddles_err != nil {
+		fmt.Print(twddles_err)
+	}
+
+	coset_powers_d, _ := goicicle.CudaMalloc(n*fr.Bytes)
+	cosetTableRev := icicle.BatchConvertFromFrGnark[icicle.ScalarField](domain.CosetTableReversed)
+	goicicle.CudaMemCpyHtoD[icicle.ScalarField](coset_powers_d, cosetTableRev, n*fr.Bytes)
+	icicle.ReverseScalars(coset_powers_d, n)
+	
+	a_intt_d, a_device := INttOnDevice(a, twiddles_inv_d, n, n*fr.Bytes)
+	b_intt_d, b_device := INttOnDevice(b, twiddles_inv_d, n, n*fr.Bytes)
+	c_intt_d, c_device := INttOnDevice(c, twiddles_inv_d, n, n*fr.Bytes)
+	a = NttOnDevice(a_device, a_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
+	b = NttOnDevice(b_device, b_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
+	c = NttOnDevice(c_device, c_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
 
 	var den, one fr.Element
 	one.SetOne()

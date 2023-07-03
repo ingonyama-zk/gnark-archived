@@ -3,11 +3,14 @@ package groth16
 import (
 	"runtime"
 	"sync"
+	"unsafe"
+	"fmt"
 
 	curve "github.com/consensys/gnark-crypto/ecc/bn254"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/fft"
-	"github.com/ingonyama-zk/icicle/goicicle/curves/bn254"
+	icicle "github.com/ingonyama-zk/icicle/goicicle/curves/bn254"
+	goicicle "github.com/ingonyama-zk/icicle/goicicle"
 )
 
 // Execute process in parallel the work function
@@ -74,18 +77,18 @@ func NttBN254GnarkAdapter(domain *fft.Domain, coset bool, scalars []fr.Element, 
 				}
 			}, runtime.NumCPU())
 		}
-		if decimation == bn254.DIT {
+		if decimation == icicle.DIT {
 			scale(domain.CosetTableReversed)
 		} else {
 			scale(domain.CosetTable)
 		}
 	}
 
-	nttResult := bn254.BatchConvertFromFrGnark[bn254.ScalarField](scalars)
-	bn254.NttBN254(&nttResult, isInverse, decimation, deviceId)
+	nttResult := icicle.BatchConvertFromFrGnark[icicle.ScalarField](scalars)
+	icicle.NttBN254(&nttResult, isInverse, decimation, deviceId)
 
 	if coset && isInverse {
-		res := bn254.BatchConvertToFrGnark[bn254.ScalarField](nttResult)
+		res := icicle.BatchConvertToFrGnark[icicle.ScalarField](nttResult)
 
 		scale := func(cosetTable []fr.Element) {
 			Execute(len(res), func(start, end int) {
@@ -94,7 +97,7 @@ func NttBN254GnarkAdapter(domain *fft.Domain, coset bool, scalars []fr.Element, 
 				}
 			}, runtime.NumCPU())
 		}
-		if decimation == bn254.DIT {
+		if decimation == icicle.DIT {
 			scale(domain.CosetTableInv)
 		} else {
 			scale(domain.CosetTableInvReversed)
@@ -103,15 +106,40 @@ func NttBN254GnarkAdapter(domain *fft.Domain, coset bool, scalars []fr.Element, 
 		return res
 	}
 
-	return bn254.BatchConvertToFrGnark[bn254.ScalarField](nttResult)
+	return icicle.BatchConvertToFrGnark[icicle.ScalarField](nttResult)
+}
+
+func INttOnDevice(scalars []fr.Element, twiddles_d unsafe.Pointer, size, size_bytes int) (unsafe.Pointer, unsafe.Pointer) {
+	a_device, _ := goicicle.CudaMalloc(size_bytes)
+	a_converted := icicle.BatchConvertFromFrGnark[icicle.ScalarField](scalars)
+	goicicle.CudaMemCpyHtoD[icicle.ScalarField](a_device, a_converted, size_bytes)
+
+	icicle.ReverseScalars(a_device, size)
+	a_interp := icicle.Interpolate(a_device, false, twiddles_d, size)
+
+	return a_interp, a_device
+}
+
+func NttOnDevice(scalars_out, scalars_d, twiddles_d, coset_powers_d unsafe.Pointer, size, twid_size, size_bytes int, isCoset bool) []fr.Element {
+	res := icicle.Evaluate(scalars_out, scalars_d, twiddles_d, coset_powers_d, size, twid_size, isCoset)
+	if res != 0 {
+		fmt.Print("Issue evaluating")
+	}
+	icicle.ReverseScalars(scalars_out, size)
+
+	a_host := make([]icicle.ScalarField, size)
+	goicicle.CudaMemCpyDtoH[icicle.ScalarField](a_host, scalars_out, size_bytes)
+	a_host_converted := icicle.BatchConvertToFrGnark[icicle.ScalarField](a_host)
+
+	return a_host_converted
 }
 
 func MsmBN254GnarkAdapter(points []curve.G1Affine, scalars []fr.Element) (curve.G1Jac, error) {
-	out := new(bn254.PointBN254)
-	parsedScalars := bn254.BatchConvertFromFrGnark[bn254.ScalarField](scalars)
-	parsedPoints := bn254.BatchConvertFromG1Affine(points)
+	out := new(icicle.PointBN254)
+	parsedScalars := icicle.BatchConvertFromFrGnark[icicle.ScalarField](scalars)
+	parsedPoints := icicle.BatchConvertFromG1Affine(points)
 
-	_, err := bn254.MsmBN254(out, parsedPoints, parsedScalars, 0)
+	_, err := icicle.MsmBN254(out, parsedPoints, parsedScalars, 0)
 
 	return *out.ToGnarkJac(), err
 }
