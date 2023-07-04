@@ -401,13 +401,16 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	}
 
 	coset_powers_d, _ := goicicle.CudaMalloc(n*fr.Bytes)
-	cosetTableRev := icicle.BatchConvertFromFrGnark[icicle.ScalarField](domain.CosetTableReversed)
+	cosetTableRev := icicle.BatchConvertFromFrGnark[icicle.ScalarField](domain.CosetTable)
 	goicicle.CudaMemCpyHtoD[icicle.ScalarField](coset_powers_d, cosetTableRev, n*fr.Bytes)
-	icicle.ReverseScalars(coset_powers_d, n)
-	
-	a_intt_d, a_device := INttOnDevice(a, twiddles_inv_d, n, n*fr.Bytes)
-	b_intt_d, b_device := INttOnDevice(b, twiddles_inv_d, n, n*fr.Bytes)
-	c_intt_d, c_device := INttOnDevice(c, twiddles_inv_d, n, n*fr.Bytes)
+
+	coset_powers_inv_d, _ := goicicle.CudaMalloc(n*fr.Bytes)
+	cosetTableInv := icicle.BatchConvertFromFrGnark[icicle.ScalarField](domain.CosetTableInv)
+	goicicle.CudaMemCpyHtoD[icicle.ScalarField](coset_powers_inv_d, cosetTableInv, n*fr.Bytes)
+
+	a_intt_d, a_device := INttOnDevice(a, twiddles_inv_d, nil, n, n*fr.Bytes, false)
+	b_intt_d, b_device := INttOnDevice(b, twiddles_inv_d, nil, n, n*fr.Bytes, false)
+	c_intt_d, c_device := INttOnDevice(c, twiddles_inv_d, nil, n, n*fr.Bytes, false)
 	a = NttOnDevice(a_device, a_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
 	b = NttOnDevice(b_device, b_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
 	c = NttOnDevice(c_device, c_intt_d, twiddles_d, coset_powers_d, n, n, n*fr.Bytes, true)
@@ -428,7 +431,12 @@ func computeH(a, b, c []fr.Element, domain *fft.Domain) []fr.Element {
 	})
 
 	// ifft_coset
-	a = NttBN254GnarkAdapter(domain, true, a, true, icicle.DIF, 0)
+	final, _ := INttOnDevice(a, twiddles_inv_d, coset_powers_inv_d, n, n*fr.Bytes, true)
+	icicle.ReverseScalars(final, n)
+
+	a_host := make([]icicle.ScalarField, n)
+	goicicle.CudaMemCpyDtoH[icicle.ScalarField](a_host, final, n*fr.Bytes)
+	a = icicle.BatchConvertToFrGnark[icicle.ScalarField](a_host)
 
 	return a
 }

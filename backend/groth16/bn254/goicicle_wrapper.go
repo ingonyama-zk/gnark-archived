@@ -109,29 +109,29 @@ func NttBN254GnarkAdapter(domain *fft.Domain, coset bool, scalars []fr.Element, 
 	return icicle.BatchConvertToFrGnark[icicle.ScalarField](nttResult)
 }
 
-func INttOnDevice(scalars []fr.Element, twiddles_d unsafe.Pointer, size, size_bytes int) (unsafe.Pointer, unsafe.Pointer) {
-	a_device, _ := goicicle.CudaMalloc(size_bytes)
-	a_converted := icicle.BatchConvertFromFrGnark[icicle.ScalarField](scalars)
-	goicicle.CudaMemCpyHtoD[icicle.ScalarField](a_device, a_converted, size_bytes)
+func INttOnDevice(scalars []fr.Element, twiddles_d, cosetPowers_d unsafe.Pointer, size, sizeBytes int, isCoset bool) (unsafe.Pointer, unsafe.Pointer) {
+	scalars_d, _ := goicicle.CudaMalloc(sizeBytes)
+	scalarsIcicle := icicle.BatchConvertFromFrGnark[icicle.ScalarField](scalars)
+	goicicle.CudaMemCpyHtoD[icicle.ScalarField](scalars_d, scalarsIcicle, sizeBytes)
 
-	icicle.ReverseScalars(a_device, size)
-	a_interp := icicle.Interpolate(a_device, false, twiddles_d, size)
+	icicle.ReverseScalars(scalars_d, size)
+	scalarsInterp := icicle.Interpolate(scalars_d, twiddles_d, cosetPowers_d, size, isCoset)
 
-	return a_interp, a_device
+	return scalarsInterp, scalars_d
 }
 
-func NttOnDevice(scalars_out, scalars_d, twiddles_d, coset_powers_d unsafe.Pointer, size, twid_size, size_bytes int, isCoset bool) []fr.Element {
-	res := icicle.Evaluate(scalars_out, scalars_d, twiddles_d, coset_powers_d, size, twid_size, isCoset)
+func NttOnDevice(scalarsOut, scalars_d, twiddles_d, cosetPowers_d unsafe.Pointer, size, twidSize, sizeBytes int, isCoset bool) []fr.Element {
+	res := icicle.Evaluate(scalarsOut, scalars_d, twiddles_d, cosetPowers_d, size, twidSize, isCoset)
 	if res != 0 {
 		fmt.Print("Issue evaluating")
 	}
-	icicle.ReverseScalars(scalars_out, size)
+	icicle.ReverseScalars(scalarsOut, size)
 
-	a_host := make([]icicle.ScalarField, size)
-	goicicle.CudaMemCpyDtoH[icicle.ScalarField](a_host, scalars_out, size_bytes)
-	a_host_converted := icicle.BatchConvertToFrGnark[icicle.ScalarField](a_host)
+	aHost := make([]icicle.ScalarField, size)
+	goicicle.CudaMemCpyDtoH[icicle.ScalarField](aHost, scalarsOut, sizeBytes)
+	aHostConverted := icicle.BatchConvertToFrGnark[icicle.ScalarField](aHost)
 
-	return a_host_converted
+	return aHostConverted
 }
 
 func MsmBN254GnarkAdapter(points []curve.G1Affine, scalars []fr.Element) (curve.G1Jac, error) {
