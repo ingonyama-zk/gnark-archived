@@ -1,3 +1,7 @@
+# Notice!
+This repository is archived, please find our latest Gnark repository here https://github.com/ingonyama-zk/gnark
+
+
 # `gnark` zk-SNARK library
 
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/gnark_team.svg?style=social&label=Follow%20%40gnark_team)](https://twitter.com/gnark_team) [![License](https://img.shields.io/badge/license-Apache%202-blue)](LICENSE)
